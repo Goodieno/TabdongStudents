@@ -24,16 +24,18 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-  // Firebase config (replace with your own)
+  // ===== Replace these with your Firebase project settings =====
   const firebaseConfig = {
     apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    databaseURL: "YOUR_DATABASE_URL",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
     projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
     messagingSenderId: "YOUR_SENDER_ID",
     appId: "YOUR_APP_ID"
   };
+  // =============================================================
+
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
@@ -57,14 +59,14 @@
   function loadClasses(gradeKey){
     const container = document.getElementById('classes');
     container.innerHTML = `<h2>${gradeKey} 학급 점수</h2>`;
-    db.ref(`grades/${gradeKey}`).once('value').then(snapshot => {
+    db.ref(`${gradeKey}`).once('value').then(snapshot => {
       const classes = snapshot.val();
       if(!classes) {
         container.innerHTML += "<p>해당 학년의 학급 데이터가 없습니다.</p>";
         return;
       }
 
-      // Collect points to determine top 3
+      // Collect points for top 3
       const pointsArray = [];
       for(const className in classes){
         pointsArray.push(classes[className].points || 0);
