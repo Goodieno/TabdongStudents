@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Class Scoreboard - Student View</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 20px; }
+  h1, h2 { text-align: center; }
+  .grade, .class-card { margin: 10px auto; padding: 10px; border-radius: 8px; background: #fff; max-width: 600px; box-shadow: 0 0 5px #ccc; }
+  .class-card { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .class-name { font-weight: bold; }
+  .points { font-weight: bold; color: #ffb400; text-shadow: 0 0 2px #000; margin-left: 10px; }
+  .badge { font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-left: 5px; color: #fff; }
+  .gold { background: gold; color: #000; }
+  .silver { background: silver; color: #000; }
+  .bronze { background: #cd7f32; }
+  .reasons { max-height: 120px; overflow-y: auto; border-top: 1px solid #ccc; margin-top: 5px; padding-top: 5px; font-size: 0.9em; width: 100%; }
+  a { text-decoration: none; color: #333; }
+</style>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+  // Firebase config (replace with your own)
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    databaseURL: "YOUR_DATABASE_URL",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  // Load grades
+  function loadGrades() {
+    const container = document.getElementById('grades');
+    for(let i=1;i<=6;i++){
+      const gradeDiv = document.createElement('div');
+      gradeDiv.className = 'grade';
+      const gradeLink = document.createElement('a');
+      gradeLink.href = `#`;
+      gradeLink.textContent = `${i}학년`;
+      gradeLink.onclick = () => loadClasses(i);
+      gradeDiv.appendChild(gradeLink);
+      container.appendChild(gradeDiv);
+    }
+  }
+
+  // Load classes for a grade
+  function loadClasses(grade){
+    const container = document.getElementById('classes');
+    container.innerHTML = `<h2>${grade}학년 Classes</h2>`;
+    db.ref(`grades/${grade}`).once('value').then(snapshot => {
+      const classes = snapshot.val();
+      if(!classes) return;
+
+      // Collect points to determine top 3
+      const pointsArray = [];
+      for(const className in classes){
+        pointsArray.push(classes[className].points || 0);
+      }
+      const sortedPoints = [...new Set(pointsArray)].sort((a,b)=>b-a);
+      const topPoints = [sortedPoints[0]||0, sortedPoints[1]||0, sortedPoints[2]||0];
+
+      for(const className in classes){
+        const classData = classes[className];
+        const card = document.createElement('div');
+        card.className = 'class-card';
+
+        // Badge
+        let badge = '';
+        if(classData.points === topPoints[0]) badge = '<span class="badge gold">🥇</span>';
+        else if(classData.points === topPoints[1]) badge = '<span class="badge silver">🥈</span>';
+        else if(classData.points === topPoints[2]) badge = '<span class="badge bronze">🥉</span>';
+
+        card.innerHTML = `<span class="class-name">${className}${badge}</span> <span class="points">${classData.points || 0} pts</span>`;
+
+        // Reasons
+        const reasonsDiv = document.createElement('div');
+        reasonsDiv.className = 'reasons';
+        if(classData.reasons){
+          classData.reasons.forEach(r => {
+            const p = document.createElement('p');
+            p.textContent = r;
+            reasonsDiv.appendChild(p);
+          });
+        }
+        card.appendChild(reasonsDiv);
+        container.appendChild(card);
+      }
+    });
+  }
+
+  window.onload = loadGrades;
+</script>
+</head>
+<body>
+<h1>Class Scoreboard - Student View</h1>
+<div id="grades"></div>
+<hr>
+<div id="classes"></div>
+</body>
+</html>
