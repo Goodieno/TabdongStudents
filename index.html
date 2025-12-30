@@ -7,7 +7,8 @@
   body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 20px; }
   h1, h2 { text-align: center; }
   .grade, .class-card { margin: 10px auto; padding: 10px; border-radius: 8px; background: #fff; max-width: 600px; box-shadow: 0 0 5px #ccc; }
-  .class-card { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .class-card { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; flex-direction: column; }
+  .class-header { display: flex; justify-content: space-between; width: 100%; }
   .class-name { font-weight: bold; }
   .points { font-weight: bold; color: #ffb400; text-shadow: 0 0 2px #000; margin-left: 10px; }
   .badge { font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-left: 5px; color: #fff; }
@@ -40,26 +41,30 @@
   function loadGrades() {
     const container = document.getElementById('grades');
     for(let i=1;i<=6;i++){
+      const gradeKey = `${i}학년`;
       const gradeDiv = document.createElement('div');
       gradeDiv.className = 'grade';
       const gradeLink = document.createElement('a');
-      gradeLink.href = `#`;
-      gradeLink.textContent = `${i}학년`;
-      gradeLink.onclick = () => loadClasses(i);
+      gradeLink.href = "#";
+      gradeLink.textContent = gradeKey;
+      gradeLink.onclick = () => loadClasses(gradeKey);
       gradeDiv.appendChild(gradeLink);
       container.appendChild(gradeDiv);
     }
   }
 
   // Load classes for a grade
-  function loadClasses(grade){
+  function loadClasses(gradeKey){
     const container = document.getElementById('classes');
-    container.innerHTML = `<h2>${grade}학년 학급 점수</h2>`;
-    db.ref(`grades/${grade}학년`).once('value').then(snapshot => {
+    container.innerHTML = `<h2>${gradeKey} 학급 점수</h2>`;
+    db.ref(`grades/${gradeKey}`).once('value').then(snapshot => {
       const classes = snapshot.val();
-      if(!classes) return;
+      if(!classes) {
+        container.innerHTML += "<p>해당 학년의 학급 데이터가 없습니다.</p>";
+        return;
+      }
 
-      // Determine top 3 points
+      // Collect points to determine top 3
       const pointsArray = [];
       for(const className in classes){
         pointsArray.push(classes[className].points || 0);
@@ -78,7 +83,10 @@
         else if(classData.points === topPoints[1]) badge = '<span class="badge silver">🥈</span>';
         else if(classData.points === topPoints[2]) badge = '<span class="badge bronze">🥉</span>';
 
-        card.innerHTML = `<span class="class-name">${className}${badge}</span> <span class="points">${classData.points || 0}점</span>`;
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'class-header';
+        headerDiv.innerHTML = `<span class="class-name">${className}${badge}</span> <span class="points">${classData.points || 0}점</span>`;
+        card.appendChild(headerDiv);
 
         // Reasons
         const reasonsDiv = document.createElement('div');
@@ -93,6 +101,9 @@
         card.appendChild(reasonsDiv);
         container.appendChild(card);
       }
+    }).catch(err => {
+      console.error("Firebase error:", err);
+      container.innerHTML += "<p>데이터를 불러오는 중 오류가 발생했습니다.</p>";
     });
   }
 
