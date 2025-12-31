@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>학급 점수판 (학생용)</title>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
@@ -11,20 +12,41 @@
 body { font-family: Arial, sans-serif; padding: 20px; background: #f9fafb; }
 h1,h2{margin-bottom:16px;}
 ul{list-style:none;padding:0;}
-li{margin:10px 0;}
-button.link-btn{background:none;border:none;color:#2563eb;font-size:18px;cursor:pointer;padding:0;}
+li{margin:12px 0;}
+button.link-btn{
+  background:none;border:none;color:#2563eb;
+  font-size:18px;cursor:pointer;padding:0;
+}
 button.link-btn:hover{text-decoration:underline;}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;}
-.card{background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px;}
+
+.rank-badge{margin-left:8px;font-weight:bold;}
+.rank-1{color:#ca8a04;}
+.rank-2{color:#6b7280;}
+.rank-3{color:#92400e;}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:14px;
+  max-width:1000px;
+}
+.card{
+  background:#fff;border:1px solid #ddd;
+  border-radius:10px;padding:12px;
+}
 .class-name{font-weight:bold;color:#2563eb;}
 .points{float:right;font-weight:bold;}
-.reasons{margin-top:10px;font-size:14px;}
-.reason{border-bottom:1px dashed #ccc;padding:6px 0;}
-.reason:last-child{border-bottom:none;}
-.badge{margin-left:6px;font-weight:bold;}
-.gold{color:#d97706;}
-.silver{color:#6b7280;}
-.bronze{color:#92400e;}
+.reasons{
+  margin-top:10px;
+  max-height:160px;
+  overflow-y:auto;
+  background:#f9fafb;
+  border:1px solid #ddd;
+  padding:8px;
+  border-radius:8px;
+}
+.reason{font-size:14px;margin-bottom:6px;}
+.reason-time{font-size:12px;color:#555;}
 </style>
 </head>
 
@@ -32,12 +54,13 @@ button.link-btn:hover{text-decoration:underline;}
 
 <div id="home">
   <h1>학년 선택</h1>
-  <ul id="grade-list"></ul>
+  <ul id="grade-links"></ul>
 </div>
 
 <div id="view"></div>
 
 <script>
+/* 🔥 Firebase config */
 const firebaseConfig = {
   apiKey: "AIzaSyAfFbHdfoXoOLw7rD-nd8HPSaZR6OBBYf8",
   authDomain: "tally-v-2.firebaseapp.com",
@@ -52,77 +75,127 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let grades = {};
+let currentGrade = null;
 
-db.ref("grades").on("value", snap => {
+/* =========================
+   🏆 STUDENT RANK LOGIC
+========================= */
+function getStudentRanks(classesObj) {
+  const classes = Object.entries(classesObj || {})
+    .map(([name, data]) => ({
+      name,
+      points: data.points || 0
+    }))
+    .filter(c => c.points > 0);
+
+  if (classes.length === 0) return [];
+
+  classes.sort((a,b)=>b.points-a.points);
+
+  const groups = {};
+  classes.forEach(c=>{
+    groups[c.points]=groups[c.points]||[];
+    groups[c.points].push(c.name);
+  });
+
+  const scores = Object.keys(groups).map(Number).sort((a,b)=>b-a);
+  return scores.slice(0,3).map((score,i)=>({
+    rank:i+1,
+    score,
+    classes:groups[score]
+  }));
+}
+
+/* =========================
+   📡 LOAD DATA
+========================= */
+db.ref("grades").on("value", snap=>{
   grades = snap.val() || {};
-  renderHome();
+  currentGrade ? renderGrade(currentGrade) : renderHome();
 });
 
-/* ===== HOME (GRADES + LEADERS) ===== */
-function renderHome() {
-  document.getElementById("view").innerHTML = "";
-  document.getElementById("home").style.display = "block";
+/* =========================
+   🏠 HOME
+========================= */
+function renderHome(){
+  currentGrade=null;
+  document.getElementById("view").innerHTML="";
+  const ul=document.getElementById("grade-links");
+  ul.innerHTML="";
+  document.getElementById("home").style.display="block";
 
-  const ul = document.getElementById("grade-list");
-  ul.innerHTML = "";
+  for(const grade in grades){
+    const li=document.createElement("li");
+    li.innerHTML=`<button class="link-btn" data-grade="${grade}">${grade}</button>`;
 
-  for (const gradeName in grades) {
-    const classes = Object.entries(grades[gradeName]);
-    const sorted = [...classes].sort((a,b)=>(b[1].points||0)-(a[1].points||0));
+    const ranks=getStudentRanks(grades[grade]);
+    ranks.forEach(r=>{
+      const badge =
+        r.rank===1?"🥇 공동 1등":
+        r.rank===2?"🥈 공동 2등":
+        "🥉 공동 3등";
 
-    let badges = "";
-    sorted.slice(0,3).forEach((c,i)=>{
-      const medal = i===0?"🥇":i===1?"🥈":"🥉";
-      badges += `<span class="badge">${medal}${c[0]}</span>`;
+      r.classes.forEach(c=>{
+        const span=document.createElement("span");
+        span.className=`rank-badge rank-${r.rank}`;
+        span.textContent=` ${badge} (${c})`;
+        li.appendChild(span);
+      });
     });
 
-    const li = document.createElement("li");
-    li.innerHTML = `<button class="link-btn" data-grade="${gradeName}">${gradeName}</button> ${badges}`;
     ul.appendChild(li);
   }
 }
 
-/* ===== GRADE VIEW ===== */
-function renderGrade(gradeName) {
-  document.getElementById("home").style.display = "none";
-
-  const view = document.getElementById("view");
-  view.innerHTML = `
+/* =========================
+   📊 GRADE PAGE
+========================= */
+function renderGrade(grade){
+  currentGrade=grade;
+  document.getElementById("home").style.display="none";
+  const view=document.getElementById("view");
+  view.innerHTML=`
     <button class="link-btn" id="back">← 돌아가기</button>
-    <h2>${gradeName}</h2>
+    <h2>${grade} 점수</h2>
     <div class="grid"></div>
   `;
 
-  const grid = view.querySelector(".grid");
+  const grid=view.querySelector(".grid");
+  const classes=grades[grade]||{};
 
-  for (const className in grades[gradeName]) {
-    const c = grades[gradeName][className];
-
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
+  for(const name in classes){
+    const d=classes[name];
+    const card=document.createElement("div");
+    card.className="card";
+    card.innerHTML=`
       <div>
-        <span class="class-name">${className}</span>
-        <span class="points">${c.points || 0}점</span>
+        <span class="class-name">${name}</span>
+        <span class="points">${d.points||0}</span>
       </div>
       <div class="reasons"></div>
     `;
 
-    const reasonsDiv = card.querySelector(".reasons");
-    (c.reasons || []).slice().reverse().forEach(r=>{
-      const d = document.createElement("div");
-      d.className = "reason";
-      d.textContent = `${r.text} (${r.time})`;
-      reasonsDiv.appendChild(d);
+    const reasons=card.querySelector(".reasons");
+    (d.reasons||[]).slice().reverse().forEach(r=>{
+      const div=document.createElement("div");
+      div.className="reason";
+      div.innerHTML=`
+        ${r.text}
+        <div class="reason-time">${r.time}</div>
+      `;
+      reasons.appendChild(div);
     });
 
     grid.appendChild(card);
   }
 }
 
-document.addEventListener("click", e=>{
-  if (e.target.dataset.grade) renderGrade(e.target.dataset.grade);
-  if (e.target.id==="back") renderHome();
+/* =========================
+   🖱 EVENTS
+========================= */
+document.addEventListener("click",e=>{
+  if(e.target.dataset.grade) renderGrade(e.target.dataset.grade);
+  if(e.target.id==="back") renderHome();
 });
 </script>
 
