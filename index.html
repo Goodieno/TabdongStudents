@@ -39,7 +39,7 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-  // Load grades
+  // Load grades 1–6
   function loadGrades() {
     const container = document.getElementById('grades');
     for(let i=1;i<=6;i++){
@@ -66,7 +66,7 @@
         return;
       }
 
-      // Collect points for top 3
+      // Determine top 3 points
       const pointsArray = [];
       for(const className in classes){
         pointsArray.push(classes[className].points || 0);
