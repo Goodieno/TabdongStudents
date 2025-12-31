@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>학급 점수판</title>
+<title>학급 점수판 (학생용)</title>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -18,36 +18,63 @@ body {
 
 h1, h2 {
   margin-bottom: 14px;
+  font-size: clamp(20px, 4vw, 28px);
 }
+
+ul { list-style: none; padding: 0; }
+
+li {
+  margin: 14px 0;
+  line-height: 1.6;
+}
+
+/* Links */
+button.link-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 8px 4px;
+}
+button.link-btn:hover { text-decoration: underline; }
+
+/* Rank badges */
+.rank-badge {
+  display: inline-block;
+  margin: 6px 6px 0 0;
+  font-weight: bold;
+  white-space: nowrap;
+}
+.rank-1 { color: #ca8a04; }
+.rank-2 { color: #6b7280; }
+.rank-3 { color: #92400e; }
 
 /* ✅ GRID — MAX 3 COLUMNS */
 .grid {
   display: grid;
   gap: 14px;
-  max-width: 1100px;
-  margin: 0 auto;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(1, 1fr);
 }
 
-/* Tablet */
-@media (max-width: 900px) {
+@media (min-width: 600px) {
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-/* Mobile */
-@media (max-width: 520px) {
+@media (min-width: 1000px) {
   .grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
+/* Cards */
 .card {
-  background: #ffffff;
+  background: #fff;
   border: 1px solid #ddd;
-  border-radius: 12px;
-  padding: 12px;
+  border-radius: 14px;
+  padding: 14px;
 }
 
 .class-name {
@@ -56,64 +83,50 @@ h1, h2 {
   font-size: 18px;
 }
 
-/* ✅ TOTAL POINTS */
+/* ⭐ TOTAL POINTS */
 .points {
   float: right;
-  font-weight: 900;
-  font-size: 22px;
-  color: #fde047;
-  -webkit-text-stroke: 1.5px black;
-  text-stroke: 1.5px black;
-}
-
-/* BADGES */
-.badge {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 12px;
   font-weight: bold;
-  color: white;
+  font-size: 20px;
+  color: #facc15;
+  -webkit-text-stroke: 1px #000;
+  text-shadow: 1px 1px 0 #000;
 }
-.badge.gold { background: #f59e0b; }
-.badge.silver { background: #9ca3af; }
-.badge.bronze { background: #d97706; }
 
-/* REASONS */
-.reasons-wrapper {
+/* Reasons box */
+.reasons {
   margin-top: 10px;
-  max-height: 160px;
+  max-height: 180px;
   overflow-y: auto;
-  border: 1px solid #ddd;
-  padding: 8px;
-  border-radius: 8px;
   background: #f9fafb;
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 10px;
 }
 
-.reason-entry {
-  font-size: 14px;
-  margin-bottom: 6px;
-  padding-bottom: 6px;
-  border-bottom: 1px dashed #ccc;
-}
-.reason-entry:last-child {
-  border-bottom: none;
-}
-
-.reason-add {
-  color: #15803d;
+/* Reason entries */
+.reason {
+  font-size: 15px;
+  margin-bottom: 8px;
   font-weight: bold;
 }
 
-.reason-take {
-  color: #b91c1c;
-  font-weight: bold;
-}
+.reason.plus { color: #15803d; }
+.reason.minus { color: #b91c1c; }
 
 .reason-time {
   font-size: 12px;
   color: #555;
+  font-weight: normal;
+}
+
+/* Mobile fix */
+@media (max-width: 480px) {
+  .points {
+    float: none;
+    display: block;
+    margin-top: 4px;
+  }
 }
 </style>
 </head>
@@ -128,6 +141,7 @@ h1, h2 {
 <div id="view"></div>
 
 <script>
+/* Firebase */
 const firebaseConfig = {
   apiKey: "AIzaSyAfFbHdfoXoOLw7rD-nd8HPSaZR6OBBYf8",
   authDomain: "tally-v-2.firebaseapp.com",
@@ -144,80 +158,124 @@ const db = firebase.database();
 let grades = {};
 let currentGrade = null;
 
-db.ref("grades").on("value", snapshot => {
-  grades = snapshot.val() || {};
+/* ===== RANK LOGIC ===== */
+function getRanks(classesObj) {
+  if (!classesObj) return [];
+
+  const valid = Object.entries(classesObj)
+    .map(([name, data]) => ({ name, points: data.points || 0 }))
+    .filter(c => c.points > 0);
+
+  if (valid.length === 0) return [];
+
+  valid.sort((a,b)=>b.points-a.points);
+
+  const grouped = {};
+  valid.forEach(c=>{
+    grouped[c.points] = grouped[c.points] || [];
+    grouped[c.points].push(c.name);
+  });
+
+  const scores = Object.keys(grouped)
+    .map(Number)
+    .sort((a,b)=>b-a)
+    .slice(0,3);
+
+  return scores.map((score,i)=>({
+    rank: i+1,
+    classes: grouped[score]
+  }));
+}
+
+/* ===== DATA ===== */
+db.ref("grades").on("value", snap=>{
+  grades = snap.val() || {};
   currentGrade ? renderGrade(currentGrade) : renderHome();
 });
 
-function renderHome() {
+/* ===== HOME ===== */
+function renderHome(){
+  currentGrade = null;
+  document.getElementById("view").innerHTML="";
+  document.getElementById("home").style.display="block";
+
   const ul = document.getElementById("grade-links");
-  ul.innerHTML = "";
-  document.getElementById("view").innerHTML = "";
+  ul.innerHTML="";
 
-  Object.keys(grades).forEach(grade => {
-    const li = document.createElement("li");
-    const btn = document.createElement("button");
-    btn.className = "link-btn";
-    btn.textContent = grade;
-    btn.onclick = () => {
-      currentGrade = grade;
-      renderGrade(grade);
-    };
-    li.appendChild(btn);
+  for(const grade in grades){
+    const li=document.createElement("li");
+    li.innerHTML=`<button class="link-btn" data-grade="${grade}">${grade}</button>`;
+
+    const ranks = getRanks(grades[grade]);
+    ranks.forEach(r=>{
+      const label =
+        r.rank===1?"🥇 공동 1등":
+        r.rank===2?"🥈 공동 2등":
+        "🥉 공동 3등";
+
+      r.classes.forEach(cls=>{
+        const span=document.createElement("span");
+        span.className=`rank-badge rank-${r.rank}`;
+        span.textContent=` ${label} (${cls})`;
+        li.appendChild(span);
+      });
+    });
+
     ul.appendChild(li);
-  });
+  }
 }
 
-function renderGrade(gradeName) {
+/* ===== GRADE PAGE ===== */
+function renderGrade(grade){
+  currentGrade = grade;
+  document.getElementById("home").style.display="none";
+
   const view = document.getElementById("view");
-  view.innerHTML = `<h2>${gradeName}</h2><div class="grid"></div>`;
+  view.innerHTML=`
+    <button class="link-btn" id="back">← 돌아가기</button>
+    <h2>${grade} 점수</h2>
+    <div class="grid"></div>
+  `;
+
   const grid = view.querySelector(".grid");
+  const classes = grades[grade] || {};
 
-  const classes = Object.entries(grades[gradeName] || {})
-    .map(([name, data]) => ({
-      name,
-      points: data.points || 0,
-      reasons: data.reasons || []
-    }));
-
-  const ranked = classes
-    .filter(c => c.points > 0)
-    .sort((a, b) => b.points - a.points);
-
-  const ranks = {};
-  let rank = 1;
-  ranked.forEach((c, i) => {
-    if (i > 0 && c.points < ranked[i - 1].points) rank = i + 1;
-    ranks[c.name] = rank;
-  });
-
-  classes.forEach(c => {
-    const card = document.createElement("div");
-    card.className = "card";
-
-    let badge = "";
-    if (ranks[c.name] === 1) badge = `<span class="badge gold">1위</span>`;
-    else if (ranks[c.name] === 2) badge = `<span class="badge silver">2위</span>`;
-    else if (ranks[c.name] === 3) badge = `<span class="badge bronze">3위</span>`;
-
-    card.innerHTML = `
-      <div class="class-name">
-        ${c.name}
-        <span class="points">${c.points}</span>
-        ${badge}
+  for(const name in classes){
+    const d = classes[name];
+    const card=document.createElement("div");
+    card.className="card";
+    card.innerHTML=`
+      <div>
+        <span class="class-name">${name}</span>
+        <span class="points">${d.points||0}</span>
       </div>
-      <div class="reasons-wrapper">
-        ${c.reasons.map(r => `
-          <div class="reason-entry ${r.points > 0 ? "reason-add" : "reason-take"}">
-            ${r.text}
-            <div class="reason-time">${r.time || ""}</div>
-          </div>
-        `).join("")}
-      </div>
+      <div class="reasons"></div>
     `;
+
+    const reasons = card.querySelector(".reasons");
+    (d.reasons||[]).slice().reverse().forEach(r=>{
+      const div=document.createElement("div");
+
+      const isPlus = r.text.includes("+2");
+      const isMinus = r.text.includes("-1");
+
+      div.className = "reason " + (isPlus ? "plus" : isMinus ? "minus" : "");
+      div.innerHTML = `
+        ${r.text}
+        <div class="reason-time">${r.time}</div>
+      `;
+      reasons.appendChild(div);
+    });
+
     grid.appendChild(card);
-  });
+  }
 }
+
+/* ===== EVENTS ===== */
+document.addEventListener("click",e=>{
+  if(e.target.dataset.grade) renderGrade(e.target.dataset.grade);
+  if(e.target.id==="back") renderHome();
+});
 </script>
 
 </body>
