@@ -28,7 +28,7 @@ li {
   line-height: 1.6;
 }
 
-/* Tap-friendly links */
+/* Links */
 button.link-btn {
   background: none;
   border: none;
@@ -50,7 +50,7 @@ button.link-btn:hover { text-decoration: underline; }
 .rank-2 { color: #6b7280; }
 .rank-3 { color: #92400e; }
 
-/* Grid: mobile first */
+/* Grid */
 .grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -69,18 +69,24 @@ button.link-btn:hover { text-decoration: underline; }
   border-radius: 14px;
   padding: 14px;
 }
+
 .class-name {
   font-weight: bold;
   color: #2563eb;
   font-size: 18px;
 }
+
+/* ⭐ TOTAL POINTS */
 .points {
   float: right;
   font-weight: bold;
-  font-size: 18px;
+  font-size: 20px;
+  color: #facc15;                 /* yellow */
+  -webkit-text-stroke: 1px #000;  /* black outline */
+  text-shadow: 1px 1px 0 #000;
 }
 
-/* Reasons */
+/* Reasons box */
 .reasons {
   margin-top: 10px;
   max-height: 180px;
@@ -90,16 +96,24 @@ button.link-btn:hover { text-decoration: underline; }
   padding: 10px;
   border-radius: 10px;
 }
+
+/* Reason entries */
 .reason {
   font-size: 15px;
   margin-bottom: 8px;
+  font-weight: bold;
 }
+
+.reason.plus { color: #15803d; }   /* green */
+.reason.minus { color: #b91c1c; }  /* red */
+
 .reason-time {
   font-size: 12px;
   color: #555;
+  font-weight: normal;
 }
 
-/* Mobile fixes */
+/* Mobile fix */
 @media (max-width: 480px) {
   .points {
     float: none;
@@ -120,7 +134,7 @@ button.link-btn:hover { text-decoration: underline; }
 <div id="view"></div>
 
 <script>
-/* Firebase config */
+/* Firebase */
 const firebaseConfig = {
   apiKey: "AIzaSyAfFbHdfoXoOLw7rD-nd8HPSaZR6OBBYf8",
   authDomain: "tally-v-2.firebaseapp.com",
@@ -137,7 +151,7 @@ const db = firebase.database();
 let grades = {};
 let currentGrade = null;
 
-/* ===== STRICT STUDENT RANK LOGIC ===== */
+/* ===== RANK LOGIC ===== */
 function getRanks(classesObj) {
   if (!classesObj) return [];
 
@@ -234,8 +248,12 @@ function renderGrade(grade){
     const reasons = card.querySelector(".reasons");
     (d.reasons||[]).slice().reverse().forEach(r=>{
       const div=document.createElement("div");
-      div.className="reason";
-      div.innerHTML=`
+
+      const isPlus = r.text.includes("+2");
+      const isMinus = r.text.includes("-1");
+
+      div.className = "reason " + (isPlus ? "plus" : isMinus ? "minus" : "");
+      div.innerHTML = `
         ${r.text}
         <div class="reason-time">${r.time}</div>
       `;
