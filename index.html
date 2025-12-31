@@ -69,7 +69,7 @@ li {
 
 /* ===== TOTAL POINTS ===== */
 .total-score {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: bold;
   color: #facc15;
   text-shadow:
@@ -94,11 +94,19 @@ li {
   }
 }
 
+/* ===== REASON WINDOW (LIMIT = 3) ===== */
+.reasons-window {
+  max-height: 210px;          /* fits ~3 cards */
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
 /* ===== REASON CARDS ===== */
 .reason-card {
   background: #ffffffcc;
   border-radius: 12px;
-  padding: 12px;
+  padding: 10px;
+  margin-bottom: 8px;
   font-weight: bold;
 }
 
@@ -123,7 +131,7 @@ li {
 .snowflake {
   position: fixed;
   top: -10px;
-  color: rgba(255,255,255,0.8);
+  color: rgba(255,255,255,0.75);
   font-size: 16px;
   animation: fall linear infinite;
   pointer-events: none;
@@ -162,7 +170,6 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let grades = {};
-let currentGrade = null;
 
 /* ===== DATA ===== */
 db.ref("grades").on("value", snap => {
@@ -172,7 +179,6 @@ db.ref("grades").on("value", snap => {
 
 /* ===== HOME ===== */
 function renderHome() {
-  currentGrade = null;
   document.getElementById("view").innerHTML = "";
   document.getElementById("home").style.display = "block";
 
@@ -204,7 +210,7 @@ function renderHome() {
       const rank=i+1;
       const tied = groups[score].length>1;
       const medal = rank===1?"🥇":rank===2?"🥈":"🥉";
-      const line = document.createElement("div");
+      const line=document.createElement("div");
       line.className="rank-line";
       line.textContent = tied
         ? `${medal}🥊 공동 ${rank}등: ${groups[score].join(", ")}`
@@ -218,7 +224,6 @@ function renderHome() {
 
 /* ===== GRADE VIEW ===== */
 function openGrade(grade) {
-  currentGrade = grade;
   document.getElementById("home").style.display = "none";
 
   const view = document.getElementById("view");
@@ -245,6 +250,9 @@ function renderClass(parent, cls, data) {
   const grid = document.createElement("div");
   grid.className="reasons-grid";
 
+  const windowDiv = document.createElement("div");
+  windowDiv.className="reasons-window";
+
   (data.reasons||[]).slice().reverse().forEach(r=>{
     const card=document.createElement("div");
     const isPlus = r.text.includes("+2");
@@ -255,14 +263,15 @@ function renderClass(parent, cls, data) {
       ${r.text}
       <div class="reason-time">${r.time||""}</div>
     `;
-    grid.appendChild(card);
+    windowDiv.appendChild(card);
   });
 
+  grid.appendChild(windowDiv);
   wrap.appendChild(grid);
   parent.appendChild(wrap);
 }
 
-/* ===== WINTER SNOW (GENTLE) ===== */
+/* ===== WINTER SNOW ===== */
 const m = new Date().getMonth();
 if (m === 11 || m <= 1) {
   for (let i=0;i<40;i++){
@@ -271,7 +280,7 @@ if (m === 11 || m <= 1) {
     s.textContent="❄";
     s.style.left=Math.random()*100+"vw";
     s.style.fontSize=(12+Math.random()*10)+"px";
-    s.style.animationDuration=(10+Math.random()*10)+"s";
+    s.style.animationDuration=(14+Math.random()*12)+"s";
     s.style.opacity=0.7;
     document.body.appendChild(s);
   }
