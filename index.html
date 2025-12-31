@@ -2,50 +2,111 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>학급 점수판 (학생용)</title>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
-body { font-family: Arial, sans-serif; padding: 20px; background: #f9fafb; }
-h1,h2{margin-bottom:16px;}
-ul{list-style:none;padding:0;}
-li{margin:12px 0;}
-button.link-btn{
-  background:none;border:none;color:#2563eb;
-  font-size:18px;cursor:pointer;padding:0;
+body {
+  font-family: Arial, sans-serif;
+  padding: 14px;
+  background: #f9fafb;
 }
-button.link-btn:hover{text-decoration:underline;}
 
-.rank-badge{margin-left:8px;font-weight:bold;}
-.rank-1{color:#ca8a04;}
-.rank-2{color:#6b7280;}
-.rank-3{color:#92400e;}
+h1, h2 {
+  margin-bottom: 14px;
+  font-size: clamp(20px, 4vw, 28px);
+}
 
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-  gap:14px;
-  max-width:1000px;
+ul { list-style: none; padding: 0; }
+
+li {
+  margin: 14px 0;
+  line-height: 1.6;
 }
-.card{
-  background:#fff;border:1px solid #ddd;
-  border-radius:10px;padding:12px;
+
+/* Tap-friendly links */
+button.link-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 8px 4px;
 }
-.class-name{font-weight:bold;color:#2563eb;}
-.points{float:right;font-weight:bold;}
-.reasons{
-  margin-top:10px;
-  max-height:160px;
-  overflow-y:auto;
-  background:#f9fafb;
-  border:1px solid #ddd;
-  padding:8px;
-  border-radius:8px;
+button.link-btn:hover { text-decoration: underline; }
+
+/* Rank badges */
+.rank-badge {
+  display: inline-block;
+  margin: 6px 6px 0 0;
+  font-weight: bold;
+  white-space: nowrap;
 }
-.reason{font-size:14px;margin-bottom:6px;}
-.reason-time{font-size:12px;color:#555;}
+.rank-1 { color: #ca8a04; }
+.rank-2 { color: #6b7280; }
+.rank-3 { color: #92400e; }
+
+/* Grid: mobile first */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+}
+
+/* Cards */
+.card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 14px;
+  padding: 14px;
+}
+.class-name {
+  font-weight: bold;
+  color: #2563eb;
+  font-size: 18px;
+}
+.points {
+  float: right;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+/* Reasons */
+.reasons {
+  margin-top: 10px;
+  max-height: 180px;
+  overflow-y: auto;
+  background: #f9fafb;
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 10px;
+}
+.reason {
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+.reason-time {
+  font-size: 12px;
+  color: #555;
+}
+
+/* Mobile fixes */
+@media (max-width: 480px) {
+  .points {
+    float: none;
+    display: block;
+    margin-top: 4px;
+  }
+}
 </style>
 </head>
 
@@ -59,7 +120,7 @@ button.link-btn:hover{text-decoration:underline;}
 <div id="view"></div>
 
 <script>
-/* Firebase */
+/* Firebase config */
 const firebaseConfig = {
   apiKey: "AIzaSyAfFbHdfoXoOLw7rD-nd8HPSaZR6OBBYf8",
   authDomain: "tally-v-2.firebaseapp.com",
@@ -76,20 +137,14 @@ const db = firebase.database();
 let grades = {};
 let currentGrade = null;
 
-/* =========================
-   🏆 RANK LOGIC (STRICT)
-========================= */
+/* ===== STRICT STUDENT RANK LOGIC ===== */
 function getRanks(classesObj) {
   if (!classesObj) return [];
 
   const valid = Object.entries(classesObj)
-    .map(([name, data]) => ({
-      name,
-      points: data.points || 0
-    }))
+    .map(([name, data]) => ({ name, points: data.points || 0 }))
     .filter(c => c.points > 0);
 
-  // 🔴 ABSOLUTE STOP: no points, no badges
   if (valid.length === 0) return [];
 
   valid.sort((a,b)=>b.points-a.points);
@@ -111,32 +166,26 @@ function getRanks(classesObj) {
   }));
 }
 
-/* =========================
-   📡 DATA
-========================= */
+/* ===== DATA ===== */
 db.ref("grades").on("value", snap=>{
   grades = snap.val() || {};
   currentGrade ? renderGrade(currentGrade) : renderHome();
 });
 
-/* =========================
-   🏠 HOME
-========================= */
+/* ===== HOME ===== */
 function renderHome(){
-  currentGrade=null;
+  currentGrade = null;
   document.getElementById("view").innerHTML="";
   document.getElementById("home").style.display="block";
 
-  const ul=document.getElementById("grade-links");
+  const ul = document.getElementById("grade-links");
   ul.innerHTML="";
 
   for(const grade in grades){
     const li=document.createElement("li");
     li.innerHTML=`<button class="link-btn" data-grade="${grade}">${grade}</button>`;
 
-    const ranks=getRanks(grades[grade]);
-
-    // ✅ badges only rendered if ranks exist
+    const ranks = getRanks(grades[grade]);
     ranks.forEach(r=>{
       const label =
         r.rank===1?"🥇 공동 1등":
@@ -155,25 +204,23 @@ function renderHome(){
   }
 }
 
-/* =========================
-   📊 GRADE PAGE
-========================= */
+/* ===== GRADE PAGE ===== */
 function renderGrade(grade){
-  currentGrade=grade;
+  currentGrade = grade;
   document.getElementById("home").style.display="none";
 
-  const view=document.getElementById("view");
+  const view = document.getElementById("view");
   view.innerHTML=`
     <button class="link-btn" id="back">← 돌아가기</button>
     <h2>${grade} 점수</h2>
     <div class="grid"></div>
   `;
 
-  const grid=view.querySelector(".grid");
-  const classes=grades[grade]||{};
+  const grid = view.querySelector(".grid");
+  const classes = grades[grade] || {};
 
   for(const name in classes){
-    const d=classes[name];
+    const d = classes[name];
     const card=document.createElement("div");
     card.className="card";
     card.innerHTML=`
@@ -184,7 +231,7 @@ function renderGrade(grade){
       <div class="reasons"></div>
     `;
 
-    const reasons=card.querySelector(".reasons");
+    const reasons = card.querySelector(".reasons");
     (d.reasons||[]).slice().reverse().forEach(r=>{
       const div=document.createElement("div");
       div.className="reason";
@@ -199,9 +246,7 @@ function renderGrade(grade){
   }
 }
 
-/* =========================
-   EVENTS
-========================= */
+/* ===== EVENTS ===== */
 document.addEventListener("click",e=>{
   if(e.target.dataset.grade) renderGrade(e.target.dataset.grade);
   if(e.target.id==="back") renderHome();
