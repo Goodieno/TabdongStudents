@@ -50,7 +50,7 @@ button.link-btn:hover { text-decoration: underline; }
 .rank-2 { color: #6b7280; }
 .rank-3 { color: #92400e; }
 
-/* ✅ GRID — MAX 3 COLUMNS */
+/* GRID — max 3 columns */
 .grid {
   display: grid;
   gap: 14px;
@@ -83,7 +83,7 @@ button.link-btn:hover { text-decoration: underline; }
   font-size: 18px;
 }
 
-/* ⭐ TOTAL POINTS */
+/* TOTAL POINTS */
 .points {
   float: right;
   font-weight: bold;
@@ -207,11 +207,15 @@ function renderHome(){
     li.innerHTML=`<button class="link-btn" data-grade="${grade}">${grade}</button>`;
 
     const ranks = getRanks(grades[grade]);
+
     ranks.forEach(r=>{
-      const label =
-        r.rank===1?"🥇 공동 1등":
-        r.rank===2?"🥈 공동 2등":
-        "🥉 공동 3등";
+      const isTie = r.classes.length > 1;
+
+      const medal =
+        r.rank === 1 ? "🥇" :
+        r.rank === 2 ? "🥈" : "🥉";
+
+      const label = isTie ? `🥊 ${medal} 공동 ${r.rank}등` : `${medal} ${r.rank}등`;
 
       r.classes.forEach(cls=>{
         const span=document.createElement("span");
