@@ -10,17 +10,18 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
-/* ================= BASE ================= */
 body {
   font-family: Arial, sans-serif;
   padding: 14px;
   background: #f9fafb;
-  transition: background 0.6s ease;
+  overflow-x: hidden;
 }
+
 h1, h2 {
   margin-bottom: 14px;
   font-size: clamp(20px, 4vw, 28px);
 }
+
 ul { list-style: none; padding: 0; }
 li { margin: 14px 0; }
 
@@ -31,55 +32,48 @@ button.link-btn {
   color: #2563eb;
   font-size: 18px;
   cursor: pointer;
+  padding: 6px 4px;
 }
 button.link-btn:hover { text-decoration: underline; }
 
-/* ================= RANK BADGES ================= */
-.rank-badge {
-  display: inline-block;
-  margin: 6px 6px 0 0;
-  font-weight: bold;
-  white-space: nowrap;
-}
-.rank-1 { color: #ca8a04; }
-.rank-2 { color: #6b7280; }
-.rank-3 { color: #92400e; }
-
-/* ================= GRID ================= */
+/* Grid — MAX 3 columns */
 .grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 14px;
 }
-@media (min-width: 768px) {
-  .grid {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    max-width: 1000px;
-  }
+@media (min-width: 640px) {
+  .grid { grid-template-columns: repeat(2, minmax(260px, 1fr)); }
+}
+@media (min-width: 1024px) {
+  .grid { grid-template-columns: repeat(3, minmax(260px, 1fr)); }
 }
 
-/* ================= CARDS ================= */
+/* Cards */
 .card {
   background: #fff;
   border: 1px solid #ddd;
   border-radius: 14px;
   padding: 14px;
 }
+
 .class-name {
   font-weight: bold;
   color: #2563eb;
   font-size: 18px;
 }
+
+/* Points */
 .points {
   float: right;
   font-weight: bold;
-  font-size: 20px;
+  font-size: 22px;
   color: #facc15;
   -webkit-text-stroke: 1px #000;
   text-shadow: 1px 1px 0 #000;
 }
 
-/* ================= REASONS ================= */
+/* Reasons */
 .reasons {
   margin-top: 10px;
   max-height: 180px;
@@ -89,51 +83,58 @@ button.link-btn:hover { text-decoration: underline; }
   padding: 10px;
   border-radius: 10px;
 }
-.reason { font-weight: bold; margin-bottom: 8px; }
+
+.reason {
+  font-size: 15px;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
 .reason.plus { color: #15803d; }
 .reason.minus { color: #b91c1c; }
+
 .reason-time {
   font-size: 12px;
   color: #555;
   font-weight: normal;
 }
 
-/* ================= SEASON THEMES ================= */
-body.winter { background: linear-gradient(#e0f2fe, #f8fafc); }
-body.spring { background: linear-gradient(#fdf2f8, #f0fdf4); }
-body.summer { background: linear-gradient(#fefce8, #ecfeff); }
-body.fall   { background: linear-gradient(#fff7ed, #fef2f2); }
-
-/* ================= ANIMATIONS ================= */
-.season-fx {
-  pointer-events: none;
+/* Seasonal overlay */
+#season-overlay {
   position: fixed;
   inset: 0;
-  overflow: hidden;
+  pointer-events: none;
   z-index: 0;
 }
-.fx {
+
+/* Snow */
+.snowflake {
   position: absolute;
-  top: -10%;
+  color: #fff;
+  opacity: 0.95;
+  text-shadow: 0 0 4px rgba(0,0,0,0.4);
   animation: fall linear infinite;
-  opacity: 0.8;
 }
 @keyframes fall {
+  from { transform: translateY(-10vh); }
   to { transform: translateY(110vh); }
 }
-.snow { color: #e5e7eb; font-size: 14px; }
-.petal { color: #f9a8d4; }
-.leaf { color: #f59e0b; }
-.sun { color: #facc15; }
 
-/* Ensure content above animation */
-#home, #view { position: relative; z-index: 2; }
+/* Petals / Leaves / Orbs */
+.float {
+  position: absolute;
+  opacity: 0.9;
+  animation: drift linear infinite;
+}
+@keyframes drift {
+  from { transform: translateY(-10vh) rotate(0deg); }
+  to { transform: translateY(110vh) rotate(360deg); }
+}
 </style>
 </head>
 
 <body>
 
-<div class="season-fx" id="fx"></div>
+<div id="season-overlay"></div>
 
 <div id="home">
   <h1>학년 선택</h1>
@@ -143,8 +144,8 @@ body.fall   { background: linear-gradient(#fff7ed, #fef2f2); }
 <div id="view"></div>
 
 <script>
-/* ================= FIREBASE ================= */
-firebase.initializeApp({
+/* Firebase */
+const firebaseConfig = {
   apiKey: "AIzaSyAfFbHdfoXoOLw7rD-nd8HPSaZR6OBBYf8",
   authDomain: "tally-v-2.firebaseapp.com",
   databaseURL: "https://tally-v-2-default-rtdb.firebaseio.com",
@@ -152,132 +153,125 @@ firebase.initializeApp({
   storageBucket: "tally-v-2.appspot.com",
   messagingSenderId: "193194015446",
   appId: "1:193194015446:web:41f010ef36a74df776a777"
-});
+};
+firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let grades = {};
 let currentGrade = null;
 
-/* ================= SEASON DETECTION ================= */
-function getSeason() {
-  const m = new Date().getMonth() + 1;
+/* ===== SEASON & HOLIDAY DETECTION ===== */
+function getTheme() {
+  const d = new Date();
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+
+  // Fixed Korean holidays
+  if (m === 3 && day === 1) return "korea";
+  if (m === 5 && day === 5) return "kids";
+  if (m === 6 && day === 6) return "memorial";
+  if (m === 8 && day === 15) return "korea";
+  if (m === 10 && day === 9) return "hangul";
+  if (m === 12 && day === 25) return "christmas";
+
+  // Lunar ranges (adjust yearly)
+  if (m === 2 && day >= 8 && day <= 11) return "newyear";
+  if (m === 9 && day >= 15 && day <= 18) return "chuseok";
+
+  // Seasons
   if (m === 12 || m <= 2) return "winter";
   if (m <= 5) return "spring";
   if (m <= 8) return "summer";
   return "fall";
 }
 
-function applySeason() {
-  const season = getSeason();
-  document.body.classList.add(season);
-  const fx = document.getElementById("fx");
+/* ===== THEME EFFECTS ===== */
+const theme = getTheme();
+const overlay = document.getElementById("season-overlay");
 
-  const symbols = {
-    winter: { char: "❄", class: "snow" },
-    spring: { char: "🌸", class: "petal" },
-    summer: { char: "☀", class: "sun" },
-    fall:   { char: "🍂", class: "leaf" }
-  }[season];
-
-  for (let i = 0; i < 20; i++) {
-    const span = document.createElement("span");
-    span.className = "fx " + symbols.class;
-    span.textContent = symbols.char;
-    span.style.left = Math.random() * 100 + "%";
-    span.style.animationDuration = 8 + Math.random() * 10 + "s";
-    span.style.fontSize = 14 + Math.random() * 20 + "px";
-    fx.appendChild(span);
+function spawn(icon, count, sizeMin, sizeMax, speedMin, speedMax) {
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement("div");
+    el.className = icon === "❄" ? "snowflake" : "float";
+    el.textContent = icon;
+    el.style.left = Math.random() * 100 + "vw";
+    el.style.fontSize = sizeMin + Math.random() * (sizeMax - sizeMin) + "px";
+    el.style.animationDuration = speedMin + Math.random() * (speedMax - speedMin) + "s";
+    overlay.appendChild(el);
   }
 }
-applySeason();
 
-/* ================= RANK LOGIC ================= */
-function getRanks(classes) {
-  const valid = Object.entries(classes || {})
-    .map(([n,d])=>({name:n,points:d.points||0}))
-    .filter(c=>c.points>0);
+if (theme === "winter" || theme === "christmas") spawn("❄", 35, 16, 30, 8, 16);
+if (theme === "spring") spawn("🌸", 25, 18, 28, 10, 18);
+if (theme === "summer") spawn("☀️", 15, 20, 32, 14, 22);
+if (theme === "fall" || theme === "chuseok") spawn("🍁", 25, 18, 30, 10, 18);
+if (theme === "kids") spawn("🎈", 20, 20, 30, 10, 18);
 
-  if (!valid.length) return [];
-
-  valid.sort((a,b)=>b.points-a.points);
-  const groups = {};
-  valid.forEach(c=>{
-    groups[c.points]=groups[c.points]||[];
-    groups[c.points].push(c.name);
-  });
-
-  return Object.keys(groups)
-    .sort((a,b)=>b-a)
-    .slice(0,3)
-    .map((p,i)=>({
-      rank:i+1,
-      classes:groups[p],
-      tie:groups[p].length>1
-    }));
-}
-
-/* ================= DATA ================= */
-db.ref("grades").on("value", snap=>{
+/* ===== DATA ===== */
+db.ref("grades").on("value", snap => {
   grades = snap.val() || {};
   currentGrade ? renderGrade(currentGrade) : renderHome();
 });
 
-/* ================= HOME ================= */
-function renderHome(){
-  currentGrade=null;
-  document.getElementById("view").innerHTML="";
-  document.getElementById("home").style.display="block";
+/* ===== HOME ===== */
+function renderHome() {
+  currentGrade = null;
+  document.getElementById("view").innerHTML = "";
+  document.getElementById("home").style.display = "block";
 
-  const ul=document.getElementById("grade-links");
-  ul.innerHTML="";
+  const ul = document.getElementById("grade-links");
+  ul.innerHTML = "";
 
-  for(const g in grades){
-    const li=document.createElement("li");
-    li.innerHTML=`<button class="link-btn" data-grade="${g}">${g}</button><br>`;
-
-    getRanks(grades[g]).forEach(r=>{
-      const medal = r.rank===1?"🥇":r.rank===2?"🥈":"🥉";
-      const glove = r.tie ? "🥊" : "";
-      const span=document.createElement("span");
-      span.className=`rank-badge rank-${r.rank}`;
-      span.textContent=`${medal}${glove} ${r.classes.join(", ")}`;
-      li.appendChild(span);
-    });
-
+  for (const grade in grades) {
+    const li = document.createElement("li");
+    li.innerHTML = `<button class="link-btn" data-grade="${grade}">${grade}</button>`;
     ul.appendChild(li);
   }
 }
 
-/* ================= GRADE PAGE ================= */
-function renderGrade(g){
-  currentGrade=g;
-  document.getElementById("home").style.display="none";
+/* ===== GRADE ===== */
+function renderGrade(grade) {
+  currentGrade = grade;
+  document.getElementById("home").style.display = "none";
 
-  const view=document.getElementById("view");
-  view.innerHTML=`<button class="link-btn" id="back">← 돌아가기</button><h2>${g}</h2><div class="grid"></div>`;
+  const view = document.getElementById("view");
+  view.innerHTML = `
+    <button class="link-btn" id="back">← 돌아가기</button>
+    <h2>${grade} 점수</h2>
+    <div class="grid"></div>
+  `;
 
-  const grid=view.querySelector(".grid");
-  for(const c in grades[g]){
-    const d=grades[g][c];
-    const card=document.createElement("div");
-    card.className="card";
-    card.innerHTML=`<div><span class="class-name">${c}</span><span class="points">${d.points||0}</span></div><div class="reasons"></div>`;
-    const rbox=card.querySelector(".reasons");
+  const grid = view.querySelector(".grid");
+  const classes = grades[grade] || {};
 
-    (d.reasons||[]).slice().reverse().forEach(r=>{
-      const div=document.createElement("div");
-      div.className="reason "+(r.text.includes("+2")?"plus":"minus");
-      div.innerHTML=`${r.text}<div class="reason-time">${r.time}</div>`;
-      rbox.appendChild(div);
+  for (const name in classes) {
+    const d = classes[name];
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <div>
+        <span class="class-name">${name}</span>
+        <span class="points">${d.points || 0}</span>
+      </div>
+      <div class="reasons"></div>
+    `;
+
+    const reasons = card.querySelector(".reasons");
+    (d.reasons || []).slice().reverse().forEach(r => {
+      const div = document.createElement("div");
+      div.className = "reason " + (r.text.includes("+2") ? "plus" : "minus");
+      div.innerHTML = `${r.text}<div class="reason-time">${r.time}</div>`;
+      reasons.appendChild(div);
     });
+
     grid.appendChild(card);
   }
 }
 
-/* ================= EVENTS ================= */
-document.addEventListener("click",e=>{
-  if(e.target.dataset.grade) renderGrade(e.target.dataset.grade);
-  if(e.target.id==="back") renderHome();
+/* ===== EVENTS ===== */
+document.addEventListener("click", e => {
+  if (e.target.dataset.grade) renderGrade(e.target.dataset.grade);
+  if (e.target.id === "back") renderHome();
 });
 </script>
 
