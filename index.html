@@ -10,10 +10,13 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
+/* ================= BASE ================= */
 body {
   font-family: Arial, sans-serif;
   padding: 14px;
+  margin: 0;
   background: #f9fafb;
+  overflow-x: hidden;
 }
 
 h1, h2 {
@@ -24,56 +27,45 @@ h1, h2 {
 ul { list-style: none; padding: 0; }
 
 li {
-  margin: 18px 0;
+  margin: 14px 0;
+  line-height: 1.6;
 }
 
-/* Links */
+/* ================= LINKS ================= */
 button.link-btn {
   background: none;
   border: none;
   color: #2563eb;
-  font-size: 20px;
+  font-size: 18px;
   cursor: pointer;
-  padding: 6px 0;
+  padding: 8px 4px;
 }
 button.link-btn:hover { text-decoration: underline; }
 
-/* Rank badges */
-.rank-wrap {
-  margin-top: 6px;
-}
-
+/* ================= RANK BADGES ================= */
 .rank-badge {
-  display: block;
-  margin: 4px 0;
+  display: inline-block;
+  margin: 6px 6px 0 0;
   font-weight: bold;
   white-space: nowrap;
 }
-
 .rank-1 { color: #ca8a04; }
 .rank-2 { color: #6b7280; }
 .rank-3 { color: #92400e; }
 
-/* GRID — max 3 columns */
+/* ================= GRID ================= */
 .grid {
   display: grid;
+  grid-template-columns: 1fr;
   gap: 14px;
-  grid-template-columns: repeat(1, 1fr);
 }
-
-@media (min-width: 600px) {
+@media (min-width: 768px) {
   .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   }
 }
 
-@media (min-width: 1000px) {
-  .grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-/* Cards */
+/* ================= CARDS ================= */
 .card {
   background: #fff;
   border: 1px solid #ddd;
@@ -97,7 +89,7 @@ button.link-btn:hover { text-decoration: underline; }
   text-shadow: 1px 1px 0 #000;
 }
 
-/* Reasons box */
+/* ================= REASONS ================= */
 .reasons {
   margin-top: 10px;
   max-height: 180px;
@@ -108,13 +100,11 @@ button.link-btn:hover { text-decoration: underline; }
   border-radius: 10px;
 }
 
-/* Reason entries */
 .reason {
   font-size: 15px;
   margin-bottom: 8px;
   font-weight: bold;
 }
-
 .reason.plus { color: #15803d; }
 .reason.minus { color: #b91c1c; }
 
@@ -124,7 +114,7 @@ button.link-btn:hover { text-decoration: underline; }
   font-weight: normal;
 }
 
-/* Mobile fix */
+/* ================= MOBILE ================= */
 @media (max-width: 480px) {
   .points {
     float: none;
@@ -132,10 +122,42 @@ button.link-btn:hover { text-decoration: underline; }
     margin-top: 4px;
   }
 }
+
+/* =====================================================
+   🌸 SEASONAL THEMES (STEP 1)
+===================================================== */
+
+/* Backgrounds */
+body.winter { background: linear-gradient(#e0f2fe, #f8fafc); }
+body.spring { background: linear-gradient(#fce7f3, #ecfeff); }
+body.summer { background: linear-gradient(#e0f2fe, #fef9c3); }
+body.fall   { background: linear-gradient(#fff7ed, #fde68a); }
+
+/* Floating overlay */
+#season-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.season-item {
+  position: absolute;
+  opacity: 0.6;
+  animation: drift linear infinite;
+}
+
+@keyframes drift {
+  from { transform: translateY(-10vh); }
+  to   { transform: translateY(110vh); }
+}
 </style>
 </head>
 
 <body>
+
+<!-- seasonal animation layer -->
+<div id="season-overlay"></div>
 
 <div id="home">
   <h1>학년 선택</h1>
@@ -145,7 +167,7 @@ button.link-btn:hover { text-decoration: underline; }
 <div id="view"></div>
 
 <script>
-/* Firebase */
+/* ================= FIREBASE ================= */
 const firebaseConfig = {
   apiKey: "AIzaSyAfFbHdfoXoOLw7rD-nd8HPSaZR6OBBYf8",
   authDomain: "tally-v-2.firebaseapp.com",
@@ -162,7 +184,7 @@ const db = firebase.database();
 let grades = {};
 let currentGrade = null;
 
-/* ===== RANK LOGIC ===== */
+/* ================= RANK LOGIC ================= */
 function getRanks(classesObj) {
   if (!classesObj) return [];
 
@@ -191,13 +213,13 @@ function getRanks(classesObj) {
   }));
 }
 
-/* ===== DATA ===== */
+/* ================= DATA ================= */
 db.ref("grades").on("value", snap=>{
   grades = snap.val() || {};
   currentGrade ? renderGrade(currentGrade) : renderHome();
 });
 
-/* ===== HOME ===== */
+/* ================= HOME ================= */
 function renderHome(){
   currentGrade = null;
   document.getElementById("view").innerHTML="";
@@ -208,55 +230,43 @@ function renderHome(){
 
   for(const grade in grades){
     const li=document.createElement("li");
+    li.innerHTML=`<button class="link-btn" data-grade="${grade}">${grade}</button>`;
 
-    const gradeBtn=document.createElement("button");
-    gradeBtn.className="link-btn";
-    gradeBtn.dataset.grade=grade;
-    gradeBtn.textContent=grade;
-    li.appendChild(gradeBtn);
+    const ranks = getRanks(grades[grade]);
+    ranks.forEach(r=>{
+      const label =
+        r.rank===1?"🥇":
+        r.rank===2?"🥈":"🥉";
 
-    const ranks=getRanks(grades[grade]);
-    if(ranks.length>0){
-      const wrap=document.createElement("div");
-      wrap.className="rank-wrap";
-
-      ranks.forEach(r=>{
-        const isTie = r.classes.length > 1;
-        const medal = r.rank===1?"🥇":r.rank===2?"🥈":"🥉";
-        const label = isTie
-          ? `🥊 ${medal} 공동 ${r.rank}등`
-          : `${medal} ${r.rank}등`;
-
-        const line=document.createElement("div");
-        line.className=`rank-badge rank-${r.rank}`;
-        line.textContent=`${label} (${r.classes.join(", ")})`;
-        wrap.appendChild(line);
+      r.classes.forEach(cls=>{
+        const span=document.createElement("span");
+        span.className=`rank-badge rank-${r.rank}`;
+        span.textContent=` ${label} ${cls}`;
+        li.appendChild(span);
       });
-
-      li.appendChild(wrap);
-    }
+    });
 
     ul.appendChild(li);
   }
 }
 
-/* ===== GRADE PAGE ===== */
+/* ================= GRADE PAGE ================= */
 function renderGrade(grade){
   currentGrade = grade;
   document.getElementById("home").style.display="none";
 
-  const view=document.getElementById("view");
+  const view = document.getElementById("view");
   view.innerHTML=`
     <button class="link-btn" id="back">← 돌아가기</button>
     <h2>${grade} 점수</h2>
     <div class="grid"></div>
   `;
 
-  const grid=view.querySelector(".grid");
-  const classes=grades[grade]||{};
+  const grid = view.querySelector(".grid");
+  const classes = grades[grade] || {};
 
   for(const name in classes){
-    const d=classes[name];
+    const d = classes[name];
     const card=document.createElement("div");
     card.className="card";
     card.innerHTML=`
@@ -267,13 +277,14 @@ function renderGrade(grade){
       <div class="reasons"></div>
     `;
 
-    const reasons=card.querySelector(".reasons");
+    const reasons = card.querySelector(".reasons");
     (d.reasons||[]).slice().reverse().forEach(r=>{
       const div=document.createElement("div");
-      const isPlus=r.text.includes("+2");
-      const isMinus=r.text.includes("-1");
-      div.className="reason "+(isPlus?"plus":isMinus?"minus":"");
-      div.innerHTML=`${r.text}<div class="reason-time">${r.time}</div>`;
+      const isPlus = r.text.includes("+2");
+      const isMinus = r.text.includes("-1");
+
+      div.className = "reason " + (isPlus ? "plus" : isMinus ? "minus" : "");
+      div.innerHTML = `${r.text}<div class="reason-time">${r.time}</div>`;
       reasons.appendChild(div);
     });
 
@@ -281,11 +292,46 @@ function renderGrade(grade){
   }
 }
 
-/* ===== EVENTS ===== */
+/* ================= EVENTS ================= */
 document.addEventListener("click",e=>{
   if(e.target.dataset.grade) renderGrade(e.target.dataset.grade);
   if(e.target.id==="back") renderHome();
 });
+
+/* =====================================================
+   🌸 SEASON ENGINE (STEP 1)
+===================================================== */
+function getSeason() {
+  const m = new Date().getMonth() + 1;
+  if (m === 12 || m <= 2) return "winter";
+  if (m <= 5) return "spring";
+  if (m <= 8) return "summer";
+  return "fall";
+}
+
+const season = getSeason();
+document.body.classList.add(season);
+
+const overlay = document.getElementById("season-overlay");
+
+const seasonConfig = {
+  winter: { emoji: "❄", count: 18 },
+  spring: { emoji: "🌸", count: 16 },
+  summer: { emoji: "☀️", count: 12 },
+  fall:   { emoji: "🍁", count: 16 }
+};
+
+const cfg = seasonConfig[season];
+
+for (let i = 0; i < cfg.count; i++) {
+  const el = document.createElement("div");
+  el.className = "season-item";
+  el.textContent = cfg.emoji;
+  el.style.left = Math.random()*100 + "vw";
+  el.style.fontSize = 12 + Math.random()*16 + "px";
+  el.style.animationDuration = 12 + Math.random()*14 + "s";
+  overlay.appendChild(el);
+}
 </script>
 
 </body>
