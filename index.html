@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>학급 점수판 (학생용)</title>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
@@ -60,7 +59,7 @@ button.link-btn:hover{text-decoration:underline;}
 <div id="view"></div>
 
 <script>
-/* 🔥 Firebase config */
+/* Firebase */
 const firebaseConfig = {
   apiKey: "AIzaSyAfFbHdfoXoOLw7rD-nd8HPSaZR6OBBYf8",
   authDomain: "tally-v-2.firebaseapp.com",
@@ -78,36 +77,42 @@ let grades = {};
 let currentGrade = null;
 
 /* =========================
-   🏆 STUDENT RANK LOGIC
+   🏆 RANK LOGIC (STRICT)
 ========================= */
-function getStudentRanks(classesObj) {
-  const classes = Object.entries(classesObj || {})
+function getRanks(classesObj) {
+  if (!classesObj) return [];
+
+  const valid = Object.entries(classesObj)
     .map(([name, data]) => ({
       name,
       points: data.points || 0
     }))
     .filter(c => c.points > 0);
 
-  if (classes.length === 0) return [];
+  // 🔴 ABSOLUTE STOP: no points, no badges
+  if (valid.length === 0) return [];
 
-  classes.sort((a,b)=>b.points-a.points);
+  valid.sort((a,b)=>b.points-a.points);
 
-  const groups = {};
-  classes.forEach(c=>{
-    groups[c.points]=groups[c.points]||[];
-    groups[c.points].push(c.name);
+  const grouped = {};
+  valid.forEach(c=>{
+    grouped[c.points] = grouped[c.points] || [];
+    grouped[c.points].push(c.name);
   });
 
-  const scores = Object.keys(groups).map(Number).sort((a,b)=>b-a);
-  return scores.slice(0,3).map((score,i)=>({
-    rank:i+1,
-    score,
-    classes:groups[score]
+  const scores = Object.keys(grouped)
+    .map(Number)
+    .sort((a,b)=>b-a)
+    .slice(0,3);
+
+  return scores.map((score,i)=>({
+    rank: i+1,
+    classes: grouped[score]
   }));
 }
 
 /* =========================
-   📡 LOAD DATA
+   📡 DATA
 ========================= */
 db.ref("grades").on("value", snap=>{
   grades = snap.val() || {};
@@ -120,25 +125,28 @@ db.ref("grades").on("value", snap=>{
 function renderHome(){
   currentGrade=null;
   document.getElementById("view").innerHTML="";
+  document.getElementById("home").style.display="block";
+
   const ul=document.getElementById("grade-links");
   ul.innerHTML="";
-  document.getElementById("home").style.display="block";
 
   for(const grade in grades){
     const li=document.createElement("li");
     li.innerHTML=`<button class="link-btn" data-grade="${grade}">${grade}</button>`;
 
-    const ranks=getStudentRanks(grades[grade]);
+    const ranks=getRanks(grades[grade]);
+
+    // ✅ badges only rendered if ranks exist
     ranks.forEach(r=>{
-      const badge =
+      const label =
         r.rank===1?"🥇 공동 1등":
         r.rank===2?"🥈 공동 2등":
         "🥉 공동 3등";
 
-      r.classes.forEach(c=>{
+      r.classes.forEach(cls=>{
         const span=document.createElement("span");
         span.className=`rank-badge rank-${r.rank}`;
-        span.textContent=` ${badge} (${c})`;
+        span.textContent=` ${label} (${cls})`;
         li.appendChild(span);
       });
     });
@@ -153,6 +161,7 @@ function renderHome(){
 function renderGrade(grade){
   currentGrade=grade;
   document.getElementById("home").style.display="none";
+
   const view=document.getElementById("view");
   view.innerHTML=`
     <button class="link-btn" id="back">← 돌아가기</button>
@@ -191,7 +200,7 @@ function renderGrade(grade){
 }
 
 /* =========================
-   🖱 EVENTS
+   EVENTS
 ========================= */
 document.addEventListener("click",e=>{
   if(e.target.dataset.grade) renderGrade(e.target.dataset.grade);
