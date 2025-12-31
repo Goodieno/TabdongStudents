@@ -49,8 +49,17 @@ li {
   font-weight: bold;
 }
 
+/* rank colors */
+.rank-1 { color: #facc15; }   /* gold */
+.rank-2 { color: #cbd5e1; }   /* silver */
+.rank-3 { color: #d97706; }   /* bronze */
+
 /* ===== VIEW ===== */
-#home, #view {
+#home {
+  padding: 16px;
+}
+
+#view {
   padding: 16px;
 }
 
@@ -63,21 +72,8 @@ li {
   margin-bottom: 8px;
 }
 
-/* ===== TOTAL SCORE ===== */
+/* ===== TOTAL POINTS ===== */
 .total-score {
-  margin: 12px 0;
-}
-
-/* Class name = BLACK */
-.class-name {
-  font-size: 22px;
-  font-weight: bold;
-  color: #000;
-  margin-right: 8px;
-}
-
-/* Points = yellow w/ black outline */
-.class-points {
   font-size: 28px;
   font-weight: bold;
   color: #facc15;
@@ -86,6 +82,7 @@ li {
      1px -1px 0 #000,
     -1px  1px 0 #000,
      1px  1px 0 #000;
+  margin: 12px 0;
 }
 
 /* ===== REASONS GRID ===== */
@@ -94,11 +91,8 @@ li {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 12px;
   max-width: 900px;
-
-  /* ✅ SHOW ~3, SCROLL FOR MORE */
-  max-height: 220px;
+  max-height: 420px;
   overflow-y: auto;
-  padding-right: 6px;
 }
 
 @media (min-width: 900px) {
@@ -136,8 +130,8 @@ li {
 .snowflake {
   position: fixed;
   top: -10px;
-  color: rgba(255,255,255,0.8);
-  font-size: 16px;
+  color: rgba(255,255,255,0.9);
+  font-size: 18px;
   animation: fall linear infinite;
   pointer-events: none;
 }
@@ -211,15 +205,16 @@ function renderHome() {
       groups[c.points].push(c.name);
     });
 
-    Object.keys(groups).slice(0,3).forEach((_,i)=>{
+    Object.keys(groups).slice(0,3).forEach((score,i)=>{
       const rank=i+1;
-      const tied = groups[Object.keys(groups)[i]].length>1;
+      const tied = groups[score].length>1;
       const medal = rank===1?"🥇":rank===2?"🥈":"🥉";
+
       const line = document.createElement("div");
-      line.className="rank-line";
+      line.className = `rank-line rank-${rank}`;
       line.textContent = tied
-        ? `${medal}🥊 공동 ${rank}등: ${groups[Object.keys(groups)[i]].join(", ")}`
-        : `${medal} ${rank}등: ${groups[Object.keys(groups)[i]].join(", ")}`;
+        ? `${medal}🥊 공동 ${rank}등: ${groups[score].join(", ")}`
+        : `${medal} ${rank}등: ${groups[score].join(", ")}`;
       li.appendChild(line);
     });
 
@@ -249,10 +244,7 @@ function renderClass(parent, cls, data) {
 
   const total = document.createElement("div");
   total.className="total-score";
-  total.innerHTML = `
-    <span class="class-name">${cls}</span>
-    <span class="class-points">${data.points||0}</span>
-  `;
+  total.textContent = `${cls}: ${data.points||0}`;
   wrap.appendChild(total);
 
   const grid = document.createElement("div");
@@ -283,9 +275,9 @@ if (m === 11 || m <= 1) {
     s.className="snowflake";
     s.textContent="❄";
     s.style.left=Math.random()*100+"vw";
-    s.style.fontSize=(12+Math.random()*10)+"px";
-    s.style.animationDuration=(10+Math.random()*10)+"s";
-    s.style.opacity=0.7;
+    s.style.fontSize=(14+Math.random()*10)+"px";
+    s.style.animationDuration=(12+Math.random()*12)+"s";
+    s.style.opacity=0.9;
     document.body.appendChild(s);
   }
 }
