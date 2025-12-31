@@ -19,18 +19,10 @@ body {
   overflow-x: hidden;
 }
 
-h1, h2 {
-  margin-bottom: 12px;
-}
+h1, h2 { margin-bottom: 12px; }
 
-ul {
-  list-style: none;
-  padding: 0;
-}
-
-li {
-  margin-bottom: 18px;
-}
+ul { list-style: none; padding: 0; }
+li { margin-bottom: 18px; }
 
 /* ===== LINKS ===== */
 .link-btn {
@@ -47,21 +39,21 @@ li {
   margin-left: 12px;
   margin-top: 4px;
   font-weight: bold;
+  text-shadow:
+    -1px -1px 0 #000,
+     1px -1px 0 #000,
+    -1px  1px 0 #000,
+     1px  1px 0 #000;
 }
 
-/* rank colors */
-.rank-1 { color: #facc15; }   /* gold */
-.rank-2 { color: #cbd5e1; }   /* silver */
-.rank-3 { color: #d97706; }   /* bronze */
+/* ===== RANK COLORS ===== */
+.rank-1 { color: #facc15; }
+.rank-2 { color: #e5e7eb; }
+.rank-3 { color: #d97706; }
 
 /* ===== VIEW ===== */
-#home {
-  padding: 16px;
-}
-
-#view {
-  padding: 16px;
-}
+#home { padding: 16px; }
+#view { padding: 16px; }
 
 .back-btn {
   background: none;
@@ -91,7 +83,9 @@ li {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 12px;
   max-width: 900px;
-  max-height: 420px;
+
+  /* ✅ SHOW ONLY 3 REASONS VISUALLY */
+  max-height: 210px;
   overflow-y: auto;
 }
 
@@ -130,16 +124,14 @@ li {
 .snowflake {
   position: fixed;
   top: -10px;
-  color: rgba(255,255,255,0.9);
+  color: rgba(255,255,255,0.85);
   font-size: 18px;
   animation: fall linear infinite;
   pointer-events: none;
 }
 
 @keyframes fall {
-  to {
-    transform: translateY(110vh);
-  }
+  to { transform: translateY(110vh); }
 }
 </style>
 </head>
@@ -155,7 +147,7 @@ li {
 
 <script>
 /* ===== FIREBASE ===== */
-const firebaseConfig = {
+firebase.initializeApp({
   apiKey: "AIzaSyAfFbHdfoXoOLw7rD-nd8HPSaZR6OBBYf8",
   authDomain: "tally-v-2.firebaseapp.com",
   databaseURL: "https://tally-v-2-default-rtdb.firebaseio.com",
@@ -163,11 +155,9 @@ const firebaseConfig = {
   storageBucket: "tally-v-2.appspot.com",
   messagingSenderId: "193194015446",
   appId: "1:193194015446:web:41f010ef36a74df776a777"
-};
+});
 
-firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-
 let grades = {};
 
 /* ===== DATA ===== */
@@ -193,8 +183,7 @@ function renderHome() {
     btn.onclick = () => openGrade(grade);
     li.appendChild(btn);
 
-    const classes = grades[grade] || {};
-    const scored = Object.entries(classes)
+    const scored = Object.entries(grades[grade])
       .map(([n,d]) => ({ name:n, points:d.points||0 }))
       .filter(c => c.points > 0)
       .sort((a,b)=>b.points-a.points);
@@ -206,8 +195,8 @@ function renderHome() {
     });
 
     Object.keys(groups).slice(0,3).forEach((score,i)=>{
-      const rank=i+1;
-      const tied = groups[score].length>1;
+      const rank = i+1;
+      const tied = groups[score].length > 1;
       const medal = rank===1?"🥇":rank===2?"🥈":"🥉";
 
       const line = document.createElement("div");
@@ -215,6 +204,7 @@ function renderHome() {
       line.textContent = tied
         ? `${medal}🥊 공동 ${rank}등: ${groups[score].join(", ")}`
         : `${medal} ${rank}등: ${groups[score].join(", ")}`;
+
       li.appendChild(line);
     });
 
@@ -222,7 +212,7 @@ function renderHome() {
   }
 }
 
-/* ===== GRADE VIEW ===== */
+/* ===== GRADE PAGE ===== */
 function openGrade(grade) {
   document.getElementById("home").style.display = "none";
 
@@ -243,22 +233,22 @@ function renderClass(parent, cls, data) {
   const wrap = document.createElement("div");
 
   const total = document.createElement("div");
-  total.className="total-score";
-  total.textContent = `${cls}: ${data.points||0}`;
+  total.className = "total-score";
+  total.textContent = `${cls}: ${data.points || 0}`;
   wrap.appendChild(total);
 
   const grid = document.createElement("div");
-  grid.className="reasons-grid";
+  grid.className = "reasons-grid";
 
-  (data.reasons||[]).slice().reverse().forEach(r=>{
-    const card=document.createElement("div");
+  (data.reasons || []).slice().reverse().forEach(r => {
+    const card = document.createElement("div");
     const isPlus = r.text.includes("+2");
     const isMinus = r.text.includes("-1");
 
-    card.className="reason-card " + (isPlus?"plus":isMinus?"minus":"");
+    card.className = "reason-card " + (isPlus ? "plus" : isMinus ? "minus" : "");
     card.innerHTML = `
       ${r.text}
-      <div class="reason-time">${r.time||""}</div>
+      <div class="reason-time">${r.time || ""}</div>
     `;
     grid.appendChild(card);
   });
@@ -270,14 +260,13 @@ function renderClass(parent, cls, data) {
 /* ===== WINTER SNOW ===== */
 const m = new Date().getMonth();
 if (m === 11 || m <= 1) {
-  for (let i=0;i<40;i++){
-    const s=document.createElement("div");
-    s.className="snowflake";
-    s.textContent="❄";
-    s.style.left=Math.random()*100+"vw";
-    s.style.fontSize=(14+Math.random()*10)+"px";
-    s.style.animationDuration=(12+Math.random()*12)+"s";
-    s.style.opacity=0.9;
+  for (let i = 0; i < 40; i++) {
+    const s = document.createElement("div");
+    s.className = "snowflake";
+    s.textContent = "❄";
+    s.style.left = Math.random() * 100 + "vw";
+    s.style.fontSize = (14 + Math.random() * 10) + "px";
+    s.style.animationDuration = (14 + Math.random() * 10) + "s";
     document.body.appendChild(s);
   }
 }
