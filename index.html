@@ -1,221 +1,160 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>학급 점수판 (학생용)</title>
+<meta charset="UTF-8" />
+<title>Class Scoreboard (Students)</title>
 
-<!-- Firebase -->
+<!-- Firebase compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
 body {
+  margin: 0;
   font-family: Arial, sans-serif;
-  padding: 14px;
-  background: #f9fafb;
+  background: #0b1c2d;
+  color: #fff;
   overflow-x: hidden;
 }
 
-h1, h2 {
-  margin-bottom: 14px;
-  font-size: clamp(20px, 4vw, 28px);
+/* ===== HOME ===== */
+#home {
+  padding: 20px;
 }
 
-ul { list-style: none; padding: 0; }
-li { margin: 14px 0; }
+ul {
+  list-style: none;
+  padding: 0;
+}
 
-/* Links */
-button.link-btn {
+li {
+  margin-bottom: 16px;
+}
+
+.link-btn {
+  font-size: 20px;
   background: none;
   border: none;
-  color: #2563eb;
-  font-size: 18px;
+  color: #00c8ff;
   cursor: pointer;
-  padding: 6px 4px;
+  font-weight: bold;
 }
-button.link-btn:hover { text-decoration: underline; }
 
-/* Grid — MAX 3 columns */
-.grid {
+/* ===== BADGES / RANKINGS ===== */
+.rank-line {
+  margin-left: 8px;
+  font-weight: bold;
+}
+
+/* ===== VIEW ===== */
+#view {
+  padding: 16px;
+}
+
+.back-btn {
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+/* ===== TOTAL SCORE ===== */
+.total-score {
+  font-size: 32px;
+  color: yellow;
+  font-weight: bold;
+  text-shadow:
+    -2px -2px 0 #000,
+     2px -2px 0 #000,
+    -2px  2px 0 #000,
+     2px  2px 0 #000;
+  margin-bottom: 10px;
+}
+
+/* ===== REASONS GRID ===== */
+.reasons-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
-}
-@media (min-width: 640px) {
-  .grid { grid-template-columns: repeat(2, minmax(260px, 1fr)); }
-}
-@media (min-width: 1024px) {
-  .grid { grid-template-columns: repeat(3, minmax(260px, 1fr)); }
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  max-width: 900px;
+  gap: 12px;
 }
 
-/* Cards */
-.card {
-  background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 14px;
-  padding: 14px;
+@media (min-width: 900px) {
+  .reasons-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
-.class-name {
-  font-weight: bold;
-  color: #2563eb;
-  font-size: 18px;
-}
-
-/* Points */
-.points {
-  float: right;
-  font-weight: bold;
-  font-size: 22px;
-  color: #facc15;
-  -webkit-text-stroke: 1px #000;
-  text-shadow: 1px 1px 0 #000;
-}
-
-/* Reasons */
-.reasons {
-  margin-top: 10px;
-  max-height: 180px;
-  overflow-y: auto;
-  background: #f9fafb;
-  border: 1px solid #ddd;
-  padding: 10px;
+.reason-card {
+  padding: 12px;
   border-radius: 10px;
+  background: rgba(255,255,255,0.1);
+  font-size: 16px;
 }
 
-.reason {
-  font-size: 15px;
-  margin-bottom: 8px;
-  font-weight: bold;
-}
-.reason.plus { color: #15803d; }
-.reason.minus { color: #b91c1c; }
-
-.reason-time {
-  font-size: 12px;
-  color: #555;
-  font-weight: normal;
+.reason-card.plus {
+  border-left: 6px solid #00ff7b;
+  color: #00ff7b;
 }
 
-/* Seasonal overlay */
-#season-overlay {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
+.reason-card.minus {
+  border-left: 6px solid #ff4b4b;
+  color: #ff4b4b;
 }
 
-/* Snow */
+/* ===== WINTER SNOW ===== */
 .snowflake {
-  position: absolute;
-  color: #fff;
-  opacity: 0.95;
-  text-shadow: 0 0 4px rgba(0,0,0,0.4);
+  position: fixed;
+  top: -10px;
+  color: #ffffff;
+  opacity: 0.9;
+  font-size: 18px;
   animation: fall linear infinite;
-}
-@keyframes fall {
-  from { transform: translateY(-10vh); }
-  to { transform: translateY(110vh); }
+  pointer-events: none;
 }
 
-/* Petals / Leaves / Orbs */
-.float {
-  position: absolute;
-  opacity: 0.9;
-  animation: drift linear infinite;
-}
-@keyframes drift {
-  from { transform: translateY(-10vh) rotate(0deg); }
-  to { transform: translateY(110vh) rotate(360deg); }
+@keyframes fall {
+  to {
+    transform: translateY(110vh);
+  }
 }
 </style>
 </head>
 
 <body>
 
-<div id="season-overlay"></div>
-
 <div id="home">
-  <h1>학년 선택</h1>
+  <h1>🏫 학년별 점수 현황</h1>
   <ul id="grade-links"></ul>
 </div>
 
 <div id="view"></div>
 
 <script>
-/* Firebase */
+/* ===== FIREBASE CONFIG ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyAfFbHdfoXoOLw7rD-nd8HPSaZR6OBBYf8",
   authDomain: "tally-v-2.firebaseapp.com",
   databaseURL: "https://tally-v-2-default-rtdb.firebaseio.com",
   projectId: "tally-v-2",
-  storageBucket: "tally-v-2.appspot.com",
+  storageBucket: "tally-v-2.firebasestorage.app",
   messagingSenderId: "193194015446",
   appId: "1:193194015446:web:41f010ef36a74df776a777"
 };
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
+/* ===== STATE ===== */
 let grades = {};
 let currentGrade = null;
 
-/* ===== SEASON & HOLIDAY DETECTION ===== */
-function getTheme() {
-  const d = new Date();
-  const m = d.getMonth() + 1;
-  const day = d.getDate();
-
-  // Fixed Korean holidays
-  if (m === 3 && day === 1) return "korea";
-  if (m === 5 && day === 5) return "kids";
-  if (m === 6 && day === 6) return "memorial";
-  if (m === 8 && day === 15) return "korea";
-  if (m === 10 && day === 9) return "hangul";
-  if (m === 12 && day === 25) return "christmas";
-
-  // Lunar ranges (adjust yearly)
-  if (m === 2 && day >= 8 && day <= 11) return "newyear";
-  if (m === 9 && day >= 15 && day <= 18) return "chuseok";
-
-  // Seasons
-  if (m === 12 || m <= 2) return "winter";
-  if (m <= 5) return "spring";
-  if (m <= 8) return "summer";
-  return "fall";
-}
-
-/* ===== THEME EFFECTS ===== */
-const theme = getTheme();
-const overlay = document.getElementById("season-overlay");
-
-function spawn(icon, count, sizeMin, sizeMax, speedMin, speedMax) {
-  for (let i = 0; i < count; i++) {
-    const el = document.createElement("div");
-    el.className = icon === "❄" ? "snowflake" : "float";
-    el.textContent = icon;
-    el.style.left = Math.random() * 100 + "vw";
-    el.style.fontSize = sizeMin + Math.random() * (sizeMax - sizeMin) + "px";
-    el.style.animationDuration = speedMin + Math.random() * (speedMax - speedMin) + "s";
-    overlay.appendChild(el);
-  }
-}
-
-if (theme === "winter" || theme === "christmas") spawn("❄", 35, 16, 30, 8, 16);
-if (theme === "spring") spawn("🌸", 25, 18, 28, 10, 18);
-if (theme === "summer") spawn("☀️", 15, 20, 32, 14, 22);
-if (theme === "fall" || theme === "chuseok") spawn("🍁", 25, 18, 30, 10, 18);
-if (theme === "kids") spawn("🎈", 20, 20, 30, 10, 18);
-
-/* ===== DATA ===== */
-db.ref("grades").on("value", snap => {
+/* ===== LOAD DATA ===== */
+firebase.database().ref("grades").on("value", snap => {
   grades = snap.val() || {};
-  currentGrade ? renderGrade(currentGrade) : renderHome();
+  renderHome();
 });
 
-/* ===== HOME ===== */
+/* ===== HOME RENDER ===== */
 function renderHome() {
-  currentGrade = null;
   document.getElementById("view").innerHTML = "";
   document.getElementById("home").style.display = "block";
 
@@ -224,55 +163,109 @@ function renderHome() {
 
   for (const grade in grades) {
     const li = document.createElement("li");
-    li.innerHTML = `<button class="link-btn" data-grade="${grade}">${grade}</button>`;
+
+    const btn = document.createElement("button");
+    btn.className = "link-btn";
+    btn.textContent = grade;
+    btn.onclick = () => openGrade(grade);
+    li.appendChild(btn);
+
+    const classes = grades[grade] || {};
+
+    const scored = Object.entries(classes)
+      .map(([name, d]) => ({ name, points: d.points || 0 }))
+      .filter(c => c.points > 0);
+
+    if (scored.length === 0) {
+      ul.appendChild(li);
+      continue;
+    }
+
+    scored.sort((a,b) => b.points - a.points);
+
+    const groups = {};
+    scored.forEach(c => {
+      groups[c.points] = groups[c.points] || [];
+      groups[c.points].push(c.name);
+    });
+
+    const scores = Object.keys(groups)
+      .map(Number)
+      .sort((a,b) => b - a)
+      .slice(0,3);
+
+    scores.forEach((score, i) => {
+      const rank = i + 1;
+      const tied = groups[score].length > 1;
+
+      const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉";
+      const text = tied
+        ? `${medal}🥊 공동 ${rank}등`
+        : `${medal} ${rank}등`;
+
+      const div = document.createElement("div");
+      div.className = "rank-line";
+      div.textContent = `${text}: ${groups[score].join(", ")}`;
+      li.appendChild(div);
+    });
+
     ul.appendChild(li);
   }
 }
 
-/* ===== GRADE ===== */
-function renderGrade(grade) {
+/* ===== OPEN GRADE ===== */
+function openGrade(grade) {
   currentGrade = grade;
   document.getElementById("home").style.display = "none";
 
   const view = document.getElementById("view");
   view.innerHTML = `
-    <button class="link-btn" id="back">← 돌아가기</button>
-    <h2>${grade} 점수</h2>
-    <div class="grid"></div>
+    <button class="back-btn" onclick="renderHome()">⬅ Back</button>
+    <h2>${grade}</h2>
   `;
 
-  const grid = view.querySelector(".grid");
   const classes = grades[grade] || {};
-
-  for (const name in classes) {
-    const d = classes[name];
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-      <div>
-        <span class="class-name">${name}</span>
-        <span class="points">${d.points || 0}</span>
-      </div>
-      <div class="reasons"></div>
-    `;
-
-    const reasons = card.querySelector(".reasons");
-    (d.reasons || []).slice().reverse().forEach(r => {
-      const div = document.createElement("div");
-      div.className = "reason " + (r.text.includes("+2") ? "plus" : "minus");
-      div.innerHTML = `${r.text}<div class="reason-time">${r.time}</div>`;
-      reasons.appendChild(div);
-    });
-
-    grid.appendChild(card);
+  for (const cls in classes) {
+    renderClass(view, cls, classes[cls]);
   }
 }
 
-/* ===== EVENTS ===== */
-document.addEventListener("click", e => {
-  if (e.target.dataset.grade) renderGrade(e.target.dataset.grade);
-  if (e.target.id === "back") renderHome();
-});
+/* ===== CLASS VIEW ===== */
+function renderClass(container, cls, data) {
+  const wrap = document.createElement("div");
+
+  const total = document.createElement("div");
+  total.className = "total-score";
+  total.textContent = `${cls}: ${data.points || 0}점`;
+  wrap.appendChild(total);
+
+  const grid = document.createElement("div");
+  grid.className = "reasons-grid";
+
+  (data.reasons || []).forEach(r => {
+    const card = document.createElement("div");
+    card.className = "reason-card " + (r.points > 0 ? "plus" : "minus");
+    card.textContent = `${r.points > 0 ? "+" : ""}${r.points} : ${r.text}`;
+    grid.appendChild(card);
+  });
+
+  wrap.appendChild(grid);
+  container.appendChild(wrap);
+}
+
+/* ===== WINTER SNOW ===== */
+const month = new Date().getMonth(); // 0 = Jan
+if (month === 11 || month <= 1) {
+  for (let i = 0; i < 50; i++) {
+    const s = document.createElement("div");
+    s.className = "snowflake";
+    s.textContent = "❄";
+    s.style.left = Math.random() * 100 + "vw";
+    s.style.animationDuration = (4 + Math.random() * 6) + "s";
+    s.style.fontSize = (14 + Math.random() * 14) + "px";
+    document.body.appendChild(s);
+  }
+}
 </script>
 
 </body>
