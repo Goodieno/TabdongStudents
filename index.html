@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>학급 점수판 (학생용)</title>
 
@@ -12,63 +12,76 @@
 <style>
 /* ===== BASE ===== */
 body {
-  margin: 0;
   font-family: Arial, sans-serif;
-  background: linear-gradient(#cfe9ff, #eaf6ff);
-  color: #0f172a;
+  padding: 14px;
+  background: linear-gradient(#e8f2ff, #f9fafb);
   overflow-x: hidden;
 }
 
 h1, h2 {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  font-size: clamp(20px, 4vw, 28px);
 }
 
-ul {
-  list-style: none;
-  padding: 0;
-}
-
-li {
-  margin-bottom: 18px;
-}
+ul { list-style: none; padding: 0; }
+li { margin: 16px 0; }
 
 /* ===== LINKS ===== */
-.link-btn {
+button.link-btn {
   background: none;
   border: none;
-  font-size: 20px;
-  font-weight: bold;
   color: #2563eb;
+  font-size: 18px;
   cursor: pointer;
+  padding: 4px 0;
 }
+button.link-btn:hover { text-decoration: underline; }
 
-/* ===== RANK LINES ===== */
+/* ===== RANK BADGES ===== */
 .rank-line {
-  margin-left: 12px;
-  margin-top: 4px;
+  margin-left: 6px;
   font-weight: bold;
+  line-height: 1.5;
 }
 
-/* ===== VIEW ===== */
-#home {
-  padding: 16px;
+.rank-1 { color: #ca8a04; }
+.rank-2 { color: #6b7280; }
+.rank-3 { color: #92400e; }
+
+/* ===== GRID (MAX 3) ===== */
+.grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(1, 1fr);
+}
+@media (min-width: 600px) {
+  .grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 900px) {
+  .grid { grid-template-columns: repeat(3, 1fr); }
 }
 
-#view {
-  padding: 16px;
+/* ===== CARD ===== */
+.card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 14px;
+  padding: 14px;
 }
 
-.back-btn {
-  background: none;
-  border: none;
-  color: #2563eb;
-  font-size: 16px;
-  cursor: pointer;
+/* ===== CLASS HEADER ===== */
+.total-score {
   margin-bottom: 8px;
 }
 
-/* ===== TOTAL POINTS ===== */
-.total-score {
+.class-label {
+  color: #000;
+  font-weight: bold;
+  font-size: 18px;
+  margin-right: 6px;
+}
+
+.class-points {
   font-size: 26px;
   font-weight: bold;
   color: #facc15;
@@ -77,64 +90,42 @@ li {
      1px -1px 0 #000,
     -1px  1px 0 #000,
      1px  1px 0 #000;
-  margin: 12px 0;
 }
 
-/* ===== REASONS GRID ===== */
-.reasons-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 12px;
-  max-width: 900px;
-}
-
-@media (min-width: 900px) {
-  .reasons-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-/* ===== REASON WINDOW (LIMIT = 3) ===== */
-.reasons-window {
-  max-height: 210px;          /* fits ~3 cards */
+/* ===== REASONS ===== */
+.reasons {
+  max-height: 120px;        /* shows ~3 */
   overflow-y: auto;
-  padding-right: 4px;
-}
-
-/* ===== REASON CARDS ===== */
-.reason-card {
-  background: #ffffffcc;
-  border-radius: 12px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background: #f9fafb;
   padding: 10px;
-  margin-bottom: 8px;
+}
+
+.reason {
+  font-size: 15px;
   font-weight: bold;
+  margin-bottom: 8px;
 }
 
-.reason-card.plus {
-  border-left: 6px solid #16a34a;
-  color: #166534;
-}
-
-.reason-card.minus {
-  border-left: 6px solid #dc2626;
-  color: #7f1d1d;
-}
+.reason.plus { color: #15803d; }
+.reason.minus { color: #b91c1c; }
 
 .reason-time {
   font-size: 12px;
+  color: #555;
   font-weight: normal;
-  margin-top: 4px;
-  color: #475569;
 }
 
 /* ===== SNOW ===== */
 .snowflake {
   position: fixed;
   top: -10px;
-  color: rgba(255,255,255,0.75);
+  color: #ffffff;
   font-size: 16px;
-  animation: fall linear infinite;
+  opacity: 0.9;
   pointer-events: none;
+  animation: fall linear infinite;
 }
 
 @keyframes fall {
@@ -170,15 +161,17 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let grades = {};
+let currentGrade = null;
 
 /* ===== DATA ===== */
 db.ref("grades").on("value", snap => {
   grades = snap.val() || {};
-  renderHome();
+  currentGrade ? renderGrade(currentGrade) : renderHome();
 });
 
 /* ===== HOME ===== */
 function renderHome() {
+  currentGrade = null;
   document.getElementById("view").innerHTML = "";
   document.getElementById("home").style.display = "block";
 
@@ -187,104 +180,93 @@ function renderHome() {
 
   for (const grade in grades) {
     const li = document.createElement("li");
+    li.innerHTML = `<button class="link-btn" data-grade="${grade}">${grade}</button>`;
 
-    const btn = document.createElement("button");
-    btn.className = "link-btn";
-    btn.textContent = grade;
-    btn.onclick = () => openGrade(grade);
-    li.appendChild(btn);
-
-    const classes = grades[grade] || {};
+    const classes = grades[grade];
     const scored = Object.entries(classes)
-      .map(([n,d]) => ({ name:n, points:d.points||0 }))
-      .filter(c => c.points > 0)
-      .sort((a,b)=>b.points-a.points);
+      .map(([n,d]) => ({ n, p: d.points||0 }))
+      .filter(c => c.p > 0);
 
-    const groups = {};
-    scored.forEach(c=>{
-      groups[c.points] = groups[c.points] || [];
-      groups[c.points].push(c.name);
-    });
+    if (scored.length) {
+      scored.sort((a,b)=>b.p-a.p);
+      const grouped = {};
+      scored.forEach(c=>{
+        grouped[c.p] = grouped[c.p] || [];
+        grouped[c.p].push(c.n);
+      });
 
-    Object.keys(groups).slice(0,3).forEach((score,i)=>{
-      const rank=i+1;
-      const tied = groups[score].length>1;
-      const medal = rank===1?"🥇":rank===2?"🥈":"🥉";
-      const line=document.createElement("div");
-      line.className="rank-line";
-      line.textContent = tied
-        ? `${medal}🥊 공동 ${rank}등: ${groups[score].join(", ")}`
-        : `${medal} ${rank}등: ${groups[score].join(", ")}`;
-      li.appendChild(line);
-    });
+      Object.keys(grouped).sort((a,b)=>b-a).slice(0,3).forEach((score,i)=>{
+        const rank = i+1;
+        const tie = grouped[score].length > 1;
+        const medal = rank===1?"🥇":rank===2?"🥈":"🥉";
+        const label = tie ? `${medal}🥊 공동 ${rank}등` : `${medal} ${rank}등`;
+
+        const div = document.createElement("div");
+        div.className = `rank-line rank-${rank}`;
+        div.textContent = `${label}: ${grouped[score].join(", ")}`;
+        li.appendChild(div);
+      });
+    }
 
     ul.appendChild(li);
   }
 }
 
-/* ===== GRADE VIEW ===== */
-function openGrade(grade) {
+/* ===== GRADE PAGE ===== */
+function renderGrade(grade) {
+  currentGrade = grade;
   document.getElementById("home").style.display = "none";
 
   const view = document.getElementById("view");
   view.innerHTML = `
-    <button class="back-btn" onclick="renderHome()">← 돌아가기</button>
+    <button class="link-btn" id="back">← 돌아가기</button>
     <h2>${grade} 점수</h2>
+    <div class="grid"></div>
   `;
 
+  const grid = view.querySelector(".grid");
   const classes = grades[grade] || {};
+
   for (const cls in classes) {
-    renderClass(view, cls, classes[cls]);
-  }
-}
-
-/* ===== CLASS ===== */
-function renderClass(parent, cls, data) {
-  const wrap = document.createElement("div");
-
-  const total = document.createElement("div");
-  total.className="total-score";
-  total.textContent = `${cls}: ${data.points||0}`;
-  wrap.appendChild(total);
-
-  const grid = document.createElement("div");
-  grid.className="reasons-grid";
-
-  const windowDiv = document.createElement("div");
-  windowDiv.className="reasons-window";
-
-  (data.reasons||[]).slice().reverse().forEach(r=>{
-    const card=document.createElement("div");
-    const isPlus = r.text.includes("+2");
-    const isMinus = r.text.includes("-1");
-
-    card.className="reason-card " + (isPlus?"plus":isMinus?"minus":"");
+    const d = classes[cls];
+    const card = document.createElement("div");
+    card.className = "card";
     card.innerHTML = `
-      ${r.text}
-      <div class="reason-time">${r.time||""}</div>
+      <div class="total-score">
+        <span class="class-label">${cls}</span>
+        <span class="class-points">${d.points||0}</span>
+      </div>
+      <div class="reasons"></div>
     `;
-    windowDiv.appendChild(card);
-  });
 
-  grid.appendChild(windowDiv);
-  wrap.appendChild(grid);
-  parent.appendChild(wrap);
-}
+    const reasons = card.querySelector(".reasons");
+    (d.reasons||[]).slice().reverse().forEach(r=>{
+      const div = document.createElement("div");
+      div.className = "reason " + (r.text.includes("+2")?"plus":"minus");
+      div.innerHTML = `${r.text}<div class="reason-time">${r.time}</div>`;
+      reasons.appendChild(div);
+    });
 
-/* ===== WINTER SNOW ===== */
-const m = new Date().getMonth();
-if (m === 11 || m <= 1) {
-  for (let i=0;i<40;i++){
-    const s=document.createElement("div");
-    s.className="snowflake";
-    s.textContent="❄";
-    s.style.left=Math.random()*100+"vw";
-    s.style.fontSize=(12+Math.random()*10)+"px";
-    s.style.animationDuration=(14+Math.random()*12)+"s";
-    s.style.opacity=0.7;
-    document.body.appendChild(s);
+    grid.appendChild(card);
   }
 }
+
+/* ===== EVENTS ===== */
+document.addEventListener("click", e => {
+  if (e.target.dataset.grade) renderGrade(e.target.dataset.grade);
+  if (e.target.id === "back") renderHome();
+});
+
+/* ===== SNOW GENERATOR ===== */
+setInterval(()=>{
+  const flake=document.createElement("div");
+  flake.className="snowflake";
+  flake.textContent="❄";
+  flake.style.left=Math.random()*100+"vw";
+  flake.style.animationDuration=8+Math.random()*6+"s";
+  document.body.appendChild(flake);
+  setTimeout(()=>flake.remove(),15000);
+},300);
 </script>
 
 </body>
