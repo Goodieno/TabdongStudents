@@ -181,19 +181,24 @@ function renderHome() {
       groups[c.points].push(c.name);
     });
 
-    Object.keys(groups).slice(0,3).forEach((score,i) => {
-      const rank = i + 1;
-      const tied = groups[score].length > 1;
-      const medal = rank===1?"🥇":rank===2?"🥈":"🥉";
+    // ✅ FIX: numeric sort, highest first
+    Object.keys(groups)
+      .map(Number)
+      .sort((a,b)=>b-a)
+      .slice(0,3)
+      .forEach((score,i) => {
+        const rank = i + 1;
+        const tied = groups[score].length > 1;
+        const medal = rank===1?"🥇":rank===2?"🥈":"🥉";
 
-      const line = document.createElement("div");
-      line.className = `rank-line rank-${rank}`;
-      line.textContent = tied
-        ? `${medal}🥊 공동 ${rank}등: ${groups[score].join(", ")}`
-        : `${medal} ${rank}등: ${groups[score].join(", ")}`;
+        const line = document.createElement("div");
+        line.className = `rank-line rank-${rank}`;
+        line.textContent = tied
+          ? `${medal}🥊 공동 ${rank}등: ${groups[score].join(", ")}`
+          : `${medal} ${rank}등: ${groups[score].join(", ")}`;
 
-      li.appendChild(line);
-    });
+        li.appendChild(line);
+      });
 
     ul.appendChild(li);
   }
@@ -215,7 +220,7 @@ function openGrade(grade) {
   }
 }
 
-/* ===== CLASS (✅ FIXED) ===== */
+/* ===== CLASS ===== */
 function renderClass(parent, cls, data) {
   const wrap = document.createElement("div");
 
@@ -227,7 +232,6 @@ function renderClass(parent, cls, data) {
   const grid = document.createElement("div");
   grid.className = "reasons-grid";
 
-  // ✅ FIX: Firebase object → array
   const reasonsArr = data.reasons
     ? Object.values(data.reasons)
     : [];
@@ -263,11 +267,4 @@ if (m === 11 || m <= 1) {
     s.textContent = "❄";
     s.style.left = Math.random() * 100 + "vw";
     s.style.fontSize = (14 + Math.random() * 10) + "px";
-    s.style.animationDuration = (14 + Math.random() * 10) + "s";
-    document.body.appendChild(s);
-  }
-}
-</script>
-
-</body>
-</html>
+    s.style.animati
