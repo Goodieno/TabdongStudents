@@ -2,189 +2,163 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>학급 점수판 (학생용)</title>
+<title>Class Scoreboard</title>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(#cfe9ff, #eaf6ff);
-  color: #0f172a;
-}
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(#0a2342, #000);
+    color: white;
+    overflow-x: hidden;
+  }
 
-h1, h2 { margin-bottom: 12px; }
-ul { list-style: none; padding: 0; }
-li { margin-bottom: 18px; }
+  h1 {
+    text-align: center;
+    margin: 20px 0;
+  }
 
-.link-btn {
-  background: none;
-  border: none;
-  font-size: 20px;
-  font-weight: bold;
-  color: #2563eb;
-  cursor: pointer;
-}
+  .grade {
+    margin: 20px;
+    padding: 15px;
+    border-radius: 12px;
+    background: rgba(0,0,0,0.4);
+  }
 
-.rank-line {
-  margin-left: 12px;
-  font-weight: bold;
-  text-shadow: 1px 1px 2px #000;
-}
+  .rank {
+    font-size: 1.3em;
+    margin: 8px 0;
+  }
 
-.rank-1 { color: gold; }
-.rank-2 { color: silver; }
-.rank-3 { color: peru; }
+  .gold { color: gold; text-shadow: 1px 1px 2px black; }
+  .silver { color: silver; text-shadow: 1px 1px 2px black; }
+  .bronze { color: #cd7f32; text-shadow: 1px 1px 2px black; }
 
-#home, #view { padding: 16px; }
-
-.back-btn {
-  background: none;
-  border: none;
-  color: #2563eb;
-  cursor: pointer;
-}
-
-.total-score {
-  font-size: 26px;
-  font-weight: bold;
-  color: gold;
-  text-shadow: 1px 1px 2px #000;
-  margin: 10px 0;
-}
-
-.reasons-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 12px;
-  max-height: 210px;
-  overflow-y: auto;
-}
-
-.reason-card {
-  background: #fff;
-  padding: 12px;
-  border-radius: 10px;
-  font-weight: bold;
-}
-
-.plus { border-left: 6px solid green; }
-.minus { border-left: 6px solid red; }
-
-.reason-time {
-  font-size: 12px;
-  color: #555;
-}
+  canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+  }
 </style>
 </head>
 
 <body>
+<h1>🏆 Class Rankings</h1>
+<div id="content"></div>
 
-<div id="home">
-  <h1>학년 선택</h1>
-  <ul id="grade-links"></ul>
-</div>
-
-<div id="view"></div>
+<canvas id="snow"></canvas>
 
 <script>
-firebase.initializeApp({
-  apiKey: "AIzaSyAfFbHdfoXoOLw7rD-nd8HPSaZR6OBBYf8",
-  authDomain: "tally-v-2.firebaseapp.com",
-  databaseURL: "https://tally-v-2-default-rtdb.firebaseio.com",
-  projectId: "tally-v-2"
-});
+/* 🔥 FIREBASE CONFIG — SAME AS TEACHER PAGE */
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "XXXX",
+  appId: "XXXX"
+};
 
+firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-let grades = {};
 
-db.ref("grades").on("value", snap => {
-  grades = snap.val() || {};
-  renderHome();
-});
+/* 🏆 RENDER STUDENT VIEW */
+function render(data) {
+  const container = document.getElementById("content");
+  container.innerHTML = "";
 
-function renderHome() {
-  const ul = document.getElementById("grade-links");
-  ul.innerHTML = "";
-  document.getElementById("view").innerHTML = "";
+  if (!data) return;
 
-  for (const grade in grades) {
-    const gradeData = grades[grade];
-    if (!gradeData || typeof gradeData !== "object") continue;
+  Object.keys(data).forEach(grade => {
+    const classes = data[grade];
+    const scored = Object.entries(classes)
+      .map(([name, d]) => ({
+        name,
+        points: d.points || 0
+      }))
+      .filter(c => c.points > 0)
+      .sort((a,b)=>b.points-a.points);
 
-    const li = document.createElement("li");
-
-    const btn = document.createElement("button");
-    btn.className = "link-btn";
-    btn.textContent = grade;
-    btn.onclick = () => openGrade(grade);
-    li.appendChild(btn);
-
-    const scored = Object.entries(gradeData)
-      .filter(([_, d]) => d && typeof d === "object")
-      .map(([n, d]) => ({ name: n, points: d.points || 0 }))
-      .filter(c => c.points > 0);
+    if (!scored.length) return;
 
     const groups = {};
-    scored.forEach(c => {
+    scored.forEach(c=>{
       groups[c.points] = groups[c.points] || [];
       groups[c.points].push(c.name);
     });
 
+    const div = document.createElement("div");
+    div.className = "grade";
+    div.innerHTML = `<h2>${grade}</h2>`;
+
     Object.keys(groups)
       .map(Number)
-      .sort((a, b) => b - a)
-      .slice(0, 3)
-      .forEach((score, i) => {
-        const line = document.createElement("div");
-        line.className = `rank-line rank-${i + 1}`;
-        line.textContent = `🏅 ${i + 1}등: ${groups[score].join(", ")}`;
-        li.appendChild(line);
+      .sort((a,b)=>b-a)     // ✅ FIXED: highest score first
+      .slice(0,3)
+      .forEach((score,i)=>{
+        const rank = i+1;
+        const cls = rank===1?"gold":rank===2?"silver":"bronze";
+        div.innerHTML += `
+          <div class="rank ${cls}">
+            ${rank}위 (${score}점): ${groups[score].join(", ")}
+          </div>
+        `;
       });
 
-    ul.appendChild(li);
-  }
+    container.appendChild(div);
+  });
 }
 
-function openGrade(grade) {
-  document.getElementById("home").style.display = "none";
-  const view = document.getElementById("view");
-  view.innerHTML = `<button class="back-btn" onclick="location.reload()">← 돌아가기</button><h2>${grade}</h2>`;
+/* 🔄 REALTIME UPDATE */
+firebase.database().ref("scores").on("value", snap=>{
+  render(snap.val());
+});
 
-  const classes = grades[grade] || {};
-  for (const cls in classes) {
-    renderClass(view, cls, classes[cls]);
-  }
-}
+/* ❄️ SNOW ANIMATION */
+const canvas = document.getElementById("snow");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-function renderClass(parent, cls, data) {
-  if (!data) return;
+const flakes = Array.from({length:120},()=>({
+  x: Math.random()*canvas.width,
+  y: Math.random()*canvas.height,
+  r: Math.random()*3+1,
+  s: Math.random()*1+0.5
+}));
 
-  const wrap = document.createElement("div");
+function snow() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = "white";
+  ctx.beginPath();
+  flakes.forEach(f=>{
+    ctx.moveTo(f.x,f.y);
+    ctx.arc(f.x,f.y,f.r,0,Math.PI*2);
+  });
+  ctx.fill();
 
-  const total = document.createElement("div");
-  total.className = "total-score";
-  total.textContent = `${cls}: ${data.points || 0}`;
-  wrap.appendChild(total);
-
-  const grid = document.createElement("div");
-  grid.className = "reasons-grid";
-
-  const reasons = data.reasons ? Object.values(data.reasons) : [];
-  reasons.reverse().forEach(r => {
-    const card = document.createElement("div");
-    card.className = "reason-card " + (r.text?.includes("+") ? "plus" : "minus");
-    card.innerHTML = `${r.text || ""}<div class="reason-time">${r.time || ""}</div>`;
-    grid.appendChild(card);
+  flakes.forEach(f=>{
+    f.y += f.s;
+    if(f.y > canvas.height) {
+      f.y = -5;
+      f.x = Math.random()*canvas.width;
+    }
   });
 
-  wrap.appendChild(grid);
-  parent.appendChild(wrap);
+  requestAnimationFrame(snow);
 }
-</script>
+snow();
 
+window.onresize = ()=>{
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+};
+</script>
 </body>
 </html>
