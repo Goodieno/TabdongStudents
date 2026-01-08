@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>Poop Quest – Scores</title>
+<title>Results</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <!-- Firebase -->
@@ -12,43 +12,43 @@
 <style>
 body {
   margin: 0;
-  font-family: 'Arial', sans-serif;
-  background: linear-gradient(180deg, #eaf6ff, #cfe9ff);
+  font-family: Arial, sans-serif;
+  background: linear-gradient(180deg, #edf7ff, #d6ecff);
   overflow-x: hidden;
 }
 
 h1 {
   text-align: center;
-  margin-top: 20px;
-  color: #2b5d8a;
+  margin: 20px 0;
+  color: #2c5f8a;
 }
 
-#scoreBoard {
+#resultsBox {
   max-width: 600px;
   margin: 30px auto;
-  background: rgba(255,255,255,0.9);
-  border-radius: 16px;
+  background: rgba(255,255,255,0.92);
+  border-radius: 18px;
   padding: 20px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.12);
   position: relative;
   z-index: 2;
 }
 
-.scoreRow {
+.resultRow {
   display: flex;
   justify-content: space-between;
   padding: 10px 0;
-  border-bottom: 1px solid #dbefff;
+  border-bottom: 1px solid #e1f0ff;
   font-size: 18px;
 }
 
-.scoreRow:last-child {
+.resultRow:last-child {
   border-bottom: none;
 }
 
 .empty {
   text-align: center;
-  color: #888;
+  color: #777;
 }
 
 /* ---------- CONFETTI ---------- */
@@ -58,37 +58,36 @@ h1 {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  opacity: 0.9;
-  animation: splash 4s ease-out forwards;
+  animation: confettiSplash 4s ease-out forwards;
   z-index: 1;
 }
 
-@keyframes splash {
-  0%   { transform: translateY(0) scale(1); opacity: 1; }
-  30%  { transform: translateY(-300px) scale(1.2); }
-  100% { transform: translateY(500px) scale(0.6); opacity: 0; }
+@keyframes confettiSplash {
+  0% { transform: translateY(0); opacity: 1; }
+  35% { transform: translateY(-320px); }
+  100% { transform: translateY(600px); opacity: 0; }
 }
 
-/* ---------- POOP EMOJI ---------- */
-#poop {
+/* ---------- EMOJI POP ---------- */
+#emojiPop {
   position: fixed;
   font-size: 140px;
-  transition: transform 1.2s ease, opacity 1.2s ease;
-  z-index: 3;
   opacity: 0;
+  transition: all 1.2s ease;
+  z-index: 3;
 }
 </style>
 </head>
 
 <body>
 
-<h1>💩 Poop Quest Scores</h1>
+<h1>📊 Results</h1>
 
-<div id="scoreBoard">
-  <div id="scores" class="empty">Loading scores…</div>
+<div id="resultsBox">
+  <div id="results" class="empty">Loading results…</div>
 </div>
 
-<div id="poop">💩</div>
+<div id="emojiPop">💩</div>
 
 <script>
 /* ---------- FIREBASE ---------- */
@@ -98,88 +97,85 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-/* ---------- LOAD SCORES ---------- */
-const scoresDiv = document.getElementById("scores");
+/* ---------- LOAD RESULTS ---------- */
+const resultsDiv = document.getElementById("results");
 
-db.ref("scores").on("value", snap => {
-  scoresDiv.innerHTML = "";
+db.ref("results").on("value", snap => {
+  resultsDiv.innerHTML = "";
 
   if (!snap.exists()) {
-    scoresDiv.innerHTML = "<div class='empty'>No scores yet</div>";
+    resultsDiv.innerHTML = "<div class='empty'>No results yet</div>";
     return;
   }
 
   const data = snap.val();
-  Object.keys(data).forEach(name => {
+  Object.keys(data).forEach(key => {
     const row = document.createElement("div");
-    row.className = "scoreRow";
-    row.innerHTML = `<span>${name}</span><span>${data[name]}</span>`;
-    scoresDiv.appendChild(row);
+    row.className = "resultRow";
+    row.innerHTML = `<span>${key}</span><span>${data[key]}</span>`;
+    resultsDiv.appendChild(row);
   });
 });
 
 /* ---------- CONFETTI SPLASH ---------- */
-function splashConfetti() {
-  for (let i = 0; i < 20; i++) {
+function launchConfetti() {
+  for (let i = 0; i < 22; i++) {
     const c = document.createElement("div");
     c.className = "confetti";
     c.style.left = Math.random() * window.innerWidth + "px";
-    c.style.background = `hsl(${Math.random()*360}, 80%, 65%)`;
+    c.style.background = `hsl(${Math.random()*360}, 70%, 65%)`;
     document.body.appendChild(c);
     setTimeout(() => c.remove(), 4000);
   }
 }
-setInterval(splashConfetti, 10000);
+setInterval(launchConfetti, 10000);
 
-/* ---------- POOP POP ANIMATION ---------- */
-const poop = document.getElementById("poop");
-const sides = ["top", "bottom", "left", "right"];
+/* ---------- EMOJI EDGE POP ---------- */
+const emoji = document.getElementById("emojiPop");
+const sides = ["top","bottom","left","right"];
 
-function poopPop() {
+function popEmoji() {
   const side = sides[Math.floor(Math.random()*sides.length)];
-  const rand = Math.random() * 60 + 10;
+  const pos = Math.random() * 60 + 10;
 
-  poop.style.opacity = "1";
-  poop.style.transform = "none";
+  emoji.style.opacity = "1";
+  emoji.style.transform = "none";
+
+  emoji.style.top = "";
+  emoji.style.bottom = "";
+  emoji.style.left = "";
+  emoji.style.right = "";
 
   if (side === "top") {
-    poop.style.top = "-140px";
-    poop.style.left = rand + "%";
-    poop.style.transform = "rotate(180deg)";
-    setTimeout(()=> poop.style.top = "-40px", 100);
+    emoji.style.top = "-140px";
+    emoji.style.left = pos + "%";
+    emoji.style.transform = "rotate(180deg)";
+    setTimeout(()=>emoji.style.top = "-40px",100);
   }
-
   if (side === "bottom") {
-    poop.style.bottom = "-140px";
-    poop.style.left = rand + "%";
-    poop.style.transform = "rotate(0deg)";
-    setTimeout(()=> poop.style.bottom = "-40px", 100);
+    emoji.style.bottom = "-140px";
+    emoji.style.left = pos + "%";
+    setTimeout(()=>emoji.style.bottom = "-40px",100);
   }
-
   if (side === "left") {
-    poop.style.left = "-140px";
-    poop.style.top = rand + "%";
-    poop.style.transform = "rotate(90deg)";
-    setTimeout(()=> poop.style.left = "-40px", 100);
+    emoji.style.left = "-140px";
+    emoji.style.top = pos + "%";
+    emoji.style.transform = "rotate(90deg)";
+    setTimeout(()=>emoji.style.left = "-40px",100);
   }
-
   if (side === "right") {
-    poop.style.right = "-140px";
-    poop.style.top = rand + "%";
-    poop.style.transform = "rotate(-90deg)";
-    setTimeout(()=> poop.style.right = "-40px", 100);
+    emoji.style.right = "-140px";
+    emoji.style.top = pos + "%";
+    emoji.style.transform = "rotate(-90deg)";
+    setTimeout(()=>emoji.style.right = "-40px",100);
   }
 
   setTimeout(() => {
-    poop.style.opacity = "0";
-    poop.style.top = "";
-    poop.style.bottom = "";
-    poop.style.left = "";
-    poop.style.right = "";
+    emoji.style.opacity = "0";
   }, 3000);
 }
 
-setInterval(poopPop, 7000);
+setInterval(popEmoji, 7000);
 </script>
 
 </body>
