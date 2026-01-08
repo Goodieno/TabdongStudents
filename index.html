@@ -11,106 +11,186 @@
 <style>
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  background: #f1f5f9;
-  color: #0f172a;
+  font-family: "Segoe UI", system-ui, Arial, sans-serif;
+  background: linear-gradient(180deg, #eef7ff, #dbeafe);
+  color: #020617;
+  overflow-x: hidden;
 }
 
+/* Layout */
 #home, #view {
   padding: 16px;
-  max-width: 480px;
+  max-width: 500px;
   margin: auto;
 }
 
 h1, h2 {
   text-align: center;
-  font-weight: 800;
+  font-weight: 900;
 }
 
-ul {
-  list-style: none;
-  padding: 0;
-}
+ul { list-style: none; padding: 0; }
 
 li {
-  background: white;
-  border-radius: 18px;
-  padding: 16px;
-  margin-bottom: 14px;
-  box-shadow: 0 6px 14px rgba(0,0,0,0.06);
+  background: linear-gradient(145deg, #ffffff, #edf4ff);
+  border-radius: 22px;
+  padding: 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+  animation: fadeUp 0.6s ease;
 }
 
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Buttons */
 .link-btn {
   width: 100%;
-  background: #2563eb;
+  background: linear-gradient(90deg, #60a5fa, #93c5fd);
   color: white;
   border: none;
-  border-radius: 16px;
-  padding: 14px;
-  font-size: 20px;
-  font-weight: bold;
+  border-radius: 999px;
+  padding: 16px;
+  font-size: 22px;
+  font-weight: 900;
   cursor: pointer;
+  animation: softPulse 3s ease-in-out infinite;
+}
+
+@keyframes softPulse {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
 }
 
 .rank-line {
-  margin-top: 8px;
-  font-size: 15px;
+  margin-top: 10px;
+  font-size: 16px;
   font-weight: bold;
 }
 
-.rank-1 { color: #ca8a04; }
+.rank-1 { color: #f59e0b; }
 .rank-2 { color: #64748b; }
 .rank-3 { color: #92400e; }
 
 .back-btn {
   background: none;
   border: none;
-  color: #2563eb;
   font-size: 16px;
-  margin-bottom: 8px;
+  color: #2563eb;
   cursor: pointer;
+  margin-bottom: 8px;
 }
 
+/* Score */
 .total-score {
-  background: #0f172a;
-  color: #facc15;
-  border-radius: 20px;
+  background: linear-gradient(135deg, #bfdbfe, #dbeafe);
+  border-radius: 999px;
   padding: 18px;
   text-align: center;
-  font-size: 30px;
-  margin: 14px 0;
+  font-size: 34px;
+  font-weight: 900;
+  margin: 16px 0;
+  animation: floatScore 4s ease-in-out infinite;
 }
 
+@keyframes floatScore {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* Reasons */
 .reasons-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 10px;
-  max-height: 240px;
+  gap: 12px;
+  max-height: 260px;
   overflow-y: auto;
 }
 
 .reason-card {
-  background: white;
-  border-radius: 14px;
+  background: #f8fafc;
+  border-radius: 18px;
   padding: 14px;
   font-weight: bold;
+  animation: popIn 0.4s ease;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
 }
 
 .reason-card.plus {
-  background: #ecfdf5;
+  background: #dcfce7;
   color: #065f46;
 }
 
 .reason-card.minus {
-  background: #fef2f2;
+  background: #fee2e2;
   color: #7f1d1d;
 }
 
 .reason-time {
   font-size: 12px;
   font-weight: normal;
-  opacity: 0.7;
   margin-top: 4px;
+  opacity: 0.7;
+}
+
+/* 🎉 Confetti splash (up then fall) */
+.confetti {
+  position: fixed;
+  bottom: -30px;
+  font-size: 20px;
+  pointer-events: none;
+  animation: confettiSplash 4s ease-out forwards;
+}
+
+@keyframes confettiSplash {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  40%  { transform: translateY(-60vh) rotate(360deg); }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* 💩 Poo peek */
+.poo {
+  position: fixed;
+  font-size: 120px;
+  z-index: 999;
+  pointer-events: none;
+  animation-duration: 3.5s;
+  animation-fill-mode: forwards;
+}
+
+/* Individual peek animations */
+@keyframes peekLeft {
+  0% { transform: translateX(-140px); }
+  30% { transform: translateX(0); }
+  70% { transform: translateX(0); }
+  100% { transform: translateX(-140px); }
+}
+
+@keyframes peekRight {
+  0% { transform: translateX(140px); }
+  30% { transform: translateX(0); }
+  70% { transform: translateX(0); }
+  100% { transform: translateX(140px); }
+}
+
+@keyframes peekTop {
+  0% { transform: translateY(-140px) rotate(180deg); }
+  30% { transform: translateY(0) rotate(180deg); }
+  70% { transform: translateY(0) rotate(180deg); }
+  100% { transform: translateY(-140px) rotate(180deg); }
+}
+
+@keyframes peekBottom {
+  0% { transform: translateY(140px); }
+  30% { transform: translateY(0); }
+  70% { transform: translateY(0); }
+  100% { transform: translateY(140px); }
 }
 </style>
 </head>
@@ -154,32 +234,11 @@ function renderHome() {
 
   for (const grade in grades) {
     const li = document.createElement("li");
-
     const btn = document.createElement("button");
     btn.className = "link-btn";
     btn.textContent = grade;
     btn.onclick = () => openGrade(grade);
     li.appendChild(btn);
-
-    const scored = Object.entries(grades[grade])
-      .map(([n,d]) => ({ name:n, points:d.points||0 }))
-      .filter(c => c.points > 0)
-      .sort((a,b)=>b.points-a.points);
-
-    const groups = {};
-    scored.forEach(c=>{
-      groups[c.points] = groups[c.points] || [];
-      groups[c.points].push(c.name);
-    });
-
-    Object.keys(groups).map(Number).sort((a,b)=>b-a).slice(0,3)
-      .forEach((score,i)=>{
-        const line = document.createElement("div");
-        line.className = `rank-line rank-${i+1}`;
-        line.textContent = `${["🥇","🥈","🥉"][i]} ${i+1}등: ${groups[score].join(", ")}`;
-        li.appendChild(line);
-      });
-
     gradeLinksEl.appendChild(li);
   }
 }
@@ -190,40 +249,56 @@ function openGrade(grade) {
     <button class="back-btn" onclick="renderHome()">← 돌아가기</button>
     <h2>${grade} 점수</h2>
   `;
+}
 
-  const classes = grades[grade] || {};
-  for (const cls in classes) {
-    renderClass(viewEl, cls, classes[cls]);
+/* 🎉 Confetti every ~10 seconds */
+setInterval(() => {
+  const count = 18 + Math.floor(Math.random() * 10);
+  for (let i = 0; i < count; i++) {
+    const c = document.createElement("div");
+    c.className = "confetti";
+    c.textContent = ["🎉","✨","⭐","💎"][Math.floor(Math.random()*4)];
+    c.style.left = Math.random() * 100 + "vw";
+    c.style.animationDelay = (Math.random() * 0.5) + "s";
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 4500);
   }
+}, 10000);
+
+/* 💩 Random peeking poo */
+function spawnPoo() {
+  const p = document.createElement("div");
+  p.className = "poo";
+  p.textContent = "💩";
+
+  const side = ["left","right","top","bottom"][Math.floor(Math.random()*4)];
+
+  if (side === "left") {
+    p.style.left = "0";
+    p.style.top = Math.random()*70 + 10 + "vh";
+    p.style.animationName = "peekLeft";
+  }
+  if (side === "right") {
+    p.style.right = "0";
+    p.style.top = Math.random()*70 + 10 + "vh";
+    p.style.animationName = "peekRight";
+  }
+  if (side === "top") {
+    p.style.top = "0";
+    p.style.left = Math.random()*70 + 10 + "vw";
+    p.style.animationName = "peekTop";
+  }
+  if (side === "bottom") {
+    p.style.bottom = "0";
+    p.style.left = Math.random()*70 + 10 + "vw";
+    p.style.animationName = "peekBottom";
+  }
+
+  document.body.appendChild(p);
+  setTimeout(() => p.remove(), 3600);
 }
 
-function renderClass(parent, cls, data) {
-  const wrap = document.createElement("div");
-
-  const total = document.createElement("div");
-  total.className = "total-score";
-  total.textContent = `${cls}: ${data.points || 0}`;
-  wrap.appendChild(total);
-
-  const grid = document.createElement("div");
-  grid.className = "reasons-grid";
-
-  (data.reasons || []).slice().reverse().forEach(r => {
-    const card = document.createElement("div");
-    card.className = "reason-card " +
-      (r.text.includes("+") ? "plus" :
-       r.text.includes("-") ? "minus" : "");
-
-    card.innerHTML = `
-      ${r.text}
-      <div class="reason-time">${r.time || ""}</div>
-    `;
-    grid.appendChild(card);
-  });
-
-  wrap.appendChild(grid);
-  parent.appendChild(wrap);
-}
+setInterval(spawnPoo, 4000 + Math.random()*5000);
 </script>
 
 </body>
