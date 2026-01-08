@@ -5,122 +5,104 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>학급 점수판 (학생용)</title>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(#cfe9ff, #eaf6ff);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  background: #f1f5f9;
   color: #0f172a;
-  overflow-x: hidden;
 }
 
-h1, h2 { margin-bottom: 12px; }
+#home, #view {
+  padding: 16px;
+  max-width: 480px;
+  margin: auto;
+}
+
+h1, h2 {
+  text-align: center;
+  font-weight: 800;
+}
 
 ul { list-style: none; padding: 0; }
-li { margin-bottom: 18px; }
+
+li {
+  background: white;
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.06);
+}
 
 .link-btn {
-  background: none;
+  width: 100%;
+  background: #2563eb;
+  color: white;
   border: none;
+  border-radius: 16px;
+  padding: 14px;
   font-size: 20px;
   font-weight: bold;
-  color: #2563eb;
-  cursor: pointer;
 }
 
 .rank-line {
-  margin-left: 12px;
-  margin-top: 4px;
-  font-weight: bold;
-  text-shadow:
-    -1px -1px 0 #000,
-     1px -1px 0 #000,
-    -1px  1px 0 #000,
-     1px  1px 0 #000;
+  margin-top: 8px;
+  font-size: 15px;
 }
 
-.rank-1 { color: #facc15; }
-.rank-2 { color: #e5e7eb; }
-.rank-3 { color: #d97706; }
-
-#home { padding: 16px; }
-#view { padding: 16px; }
+.rank-1 { color: #ca8a04; }
+.rank-2 { color: #64748b; }
+.rank-3 { color: #92400e; }
 
 .back-btn {
   background: none;
   border: none;
   color: #2563eb;
   font-size: 16px;
-  cursor: pointer;
   margin-bottom: 8px;
 }
 
 .total-score {
-  font-size: 28px;
-  font-weight: bold;
+  background: #0f172a;
   color: #facc15;
-  text-shadow:
-    -1px -1px 0 #000,
-     1px -1px 0 #000,
-    -1px  1px 0 #000,
-     1px  1px 0 #000;
-  margin: 12px 0;
+  border-radius: 20px;
+  padding: 18px;
+  text-align: center;
+  font-size: 30px;
+  margin-bottom: 12px;
 }
 
 .reasons-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 12px;
-  max-width: 900px;
-  max-height: 210px;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  max-height: 240px;
   overflow-y: auto;
 }
 
-@media (min-width: 900px) {
-  .reasons-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
 .reason-card {
-  background: #ffffffcc;
-  border-radius: 12px;
-  padding: 12px;
-  font-weight: bold;
+  background: white;
+  border-radius: 14px;
+  padding: 14px;
 }
 
 .reason-card.plus {
-  border-left: 6px solid #16a34a;
-  color: #166534;
+  background: #ecfdf5;
+  color: #065f46;
 }
 
 .reason-card.minus {
-  border-left: 6px solid #dc2626;
+  background: #fef2f2;
   color: #7f1d1d;
 }
 
 .reason-time {
   font-size: 12px;
-  font-weight: normal;
+  opacity: 0.7;
   margin-top: 4px;
-  color: #475569;
-}
-
-.snowflake {
-  position: fixed;
-  top: -10px;
-  color: rgba(255,255,255,0.85);
-  font-size: 18px;
-  animation: fall linear infinite;
-  pointer-events: none;
-}
-
-@keyframes fall {
-  to { transform: translateY(110vh); }
 }
 </style>
 </head>
@@ -154,110 +136,63 @@ db.ref("grades").on("value", snap => {
 });
 
 function renderHome() {
-  document.getElementById("view").innerHTML = "";
-  document.getElementById("home").style.display = "block";
-
-  const ul = document.getElementById("grade-links");
-  ul.innerHTML = "";
+  view.innerHTML = "";
+  home.style.display = "block";
+  grade-links.innerHTML = "";
 
   for (const grade in grades) {
     const li = document.createElement("li");
-
     const btn = document.createElement("button");
     btn.className = "link-btn";
     btn.textContent = grade;
     btn.onclick = () => openGrade(grade);
     li.appendChild(btn);
 
-    const scored = Object.entries(grades[grade])
-      .map(([n,d]) => ({ name:n, points:d.points||0 }))
-      .filter(c => c.points > 0)
+    const ranked = Object.entries(grades[grade])
+      .map(([n,d]) => ({name:n, points:d.points||0}))
+      .filter(c=>c.points>0)
       .sort((a,b)=>b.points-a.points);
 
     const groups = {};
-    scored.forEach(c=>{
+    ranked.forEach(c=>{
       groups[c.points] = groups[c.points] || [];
       groups[c.points].push(c.name);
     });
 
-    Object.keys(groups)
-      .map(Number)
-      .sort((a,b)=>b-a)
-      .slice(0,3)
-      .forEach((score,i)=>{
-        const rank = i+1;
-        const tied = groups[score].length > 1;
-        const medal = rank===1?"🥇":rank===2?"🥈":"🥉";
+    Object.keys(groups).map(Number).sort((a,b)=>b-a).slice(0,3)
+    .forEach((score,i)=>{
+      const line = document.createElement("div");
+      line.className = `rank-line rank-${i+1}`;
+      line.textContent = `${["🥇","🥈","🥉"][i]} ${i+1}등: ${groups[score].join(", ")}`;
+      li.appendChild(line);
+    });
 
-        const line = document.createElement("div");
-        line.className = `rank-line rank-${rank}`;
-        line.textContent = tied
-          ? `${medal}🥊 공동 ${rank}등: ${groups[score].join(", ")}`
-          : `${medal} ${rank}등: ${groups[score].join(", ")}`;
-
-        li.appendChild(line);
-      });
-
-    ul.appendChild(li);
+    grade-links.appendChild(li);
   }
 }
 
 function openGrade(grade) {
-  document.getElementById("home").style.display = "none";
-  const view = document.getElementById("view");
-
-  view.innerHTML = `
-    <button class="back-btn" onclick="renderHome()">← 돌아가기</button>
-    <h2>${grade} 점수</h2>
-  `;
-
-  const classes = grades[grade] || {};
-  for (const cls in classes) {
-    renderClass(view, cls, classes[cls]);
-  }
+  home.style.display = "none";
+  view.innerHTML = `<button class="back-btn" onclick="renderHome()">← 돌아가기</button><h2>${grade}</h2>`;
+  Object.entries(grades[grade]||{}).forEach(([cls,data])=>renderClass(view,cls,data));
 }
 
 function renderClass(parent, cls, data) {
   const wrap = document.createElement("div");
-
-  const total = document.createElement("div");
-  total.className = "total-score";
-  total.textContent = `${cls}: ${data.points || 0}`;
-  wrap.appendChild(total);
-
+  wrap.innerHTML = `<div class="total-score">${cls}: ${data.points||0}</div>`;
   const grid = document.createElement("div");
   grid.className = "reasons-grid";
 
-  (data.reasons || []).slice().reverse().forEach(r => {
+  (data.reasons||[]).slice().reverse().forEach(r=>{
     const card = document.createElement("div");
-    const isPlus = r.text.includes("+2");
-    const isMinus = r.text.includes("-1");
-
-    card.className = "reason-card " + (isPlus ? "plus" : isMinus ? "minus" : "");
-    card.innerHTML = `
-      ${r.text}
-      <div class="reason-time">${r.time || ""}</div>
-    `;
+    card.className = "reason-card " + (r.text.includes("+")?"plus":r.text.includes("-")?"minus":"");
+    card.innerHTML = `${r.text}<div class="reason-time">${r.time||""}</div>`;
     grid.appendChild(card);
   });
 
   wrap.appendChild(grid);
   parent.appendChild(wrap);
 }
-
-const m = new Date().getMonth();
-if (m === 11 || m <= 1) {
-  for (let i = 0; i < 40; i++) {
-    const s = document.createElement("div");
-    s.className = "snowflake";
-    s.textContent = "❄";
-    s.style.left = Math.random() * 100 + "vw";
-    s.style.fontSize = (14 + Math.random() * 10) + "px";
-    s.style.animationDuration = (14 + Math.random() * 10) + "s";
-    document.body.appendChild(s);
-  }
-}
 </script>
-
 </body>
 </html>
