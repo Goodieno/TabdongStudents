@@ -1,304 +1,185 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
+<title>Poop Quest – Scores</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>학급 점수판 (학생용)</title>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <style>
 body {
   margin: 0;
-  font-family: "Segoe UI", system-ui, Arial, sans-serif;
-  background: linear-gradient(180deg, #eef7ff, #dbeafe);
-  color: #020617;
+  font-family: 'Arial', sans-serif;
+  background: linear-gradient(180deg, #eaf6ff, #cfe9ff);
   overflow-x: hidden;
 }
 
-/* Layout */
-#home, #view {
-  padding: 16px;
-  max-width: 500px;
-  margin: auto;
-}
-
-h1, h2 {
+h1 {
   text-align: center;
-  font-weight: 900;
+  margin-top: 20px;
+  color: #2b5d8a;
 }
 
-ul { list-style: none; padding: 0; }
-
-li {
-  background: linear-gradient(145deg, #ffffff, #edf4ff);
-  border-radius: 22px;
-  padding: 18px;
-  margin-bottom: 16px;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.08);
-  animation: fadeUp 0.6s ease;
+#scoreBoard {
+  max-width: 600px;
+  margin: 30px auto;
+  background: rgba(255,255,255,0.9);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  position: relative;
+  z-index: 2;
 }
 
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+.scoreRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #dbefff;
+  font-size: 18px;
 }
 
-/* Buttons */
-.link-btn {
-  width: 100%;
-  background: linear-gradient(90deg, #60a5fa, #93c5fd);
-  color: white;
-  border: none;
-  border-radius: 999px;
-  padding: 16px;
-  font-size: 22px;
-  font-weight: 900;
-  cursor: pointer;
-  animation: softPulse 3s ease-in-out infinite;
+.scoreRow:last-child {
+  border-bottom: none;
 }
 
-@keyframes softPulse {
-  0%,100% { transform: scale(1); }
-  50% { transform: scale(1.03); }
-}
-
-.rank-line {
-  margin-top: 10px;
-  font-size: 16px;
-  font-weight: bold;
-}
-
-.rank-1 { color: #f59e0b; }
-.rank-2 { color: #64748b; }
-.rank-3 { color: #92400e; }
-
-.back-btn {
-  background: none;
-  border: none;
-  font-size: 16px;
-  color: #2563eb;
-  cursor: pointer;
-  margin-bottom: 8px;
-}
-
-/* Score */
-.total-score {
-  background: linear-gradient(135deg, #bfdbfe, #dbeafe);
-  border-radius: 999px;
-  padding: 18px;
+.empty {
   text-align: center;
-  font-size: 34px;
-  font-weight: 900;
-  margin: 16px 0;
-  animation: floatScore 4s ease-in-out infinite;
+  color: #888;
 }
 
-@keyframes floatScore {
-  0%,100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-
-/* Reasons */
-.reasons-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-  max-height: 260px;
-  overflow-y: auto;
-}
-
-.reason-card {
-  background: #f8fafc;
-  border-radius: 18px;
-  padding: 14px;
-  font-weight: bold;
-  animation: popIn 0.4s ease;
-}
-
-@keyframes popIn {
-  from { transform: scale(0.95); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
-}
-
-.reason-card.plus {
-  background: #dcfce7;
-  color: #065f46;
-}
-
-.reason-card.minus {
-  background: #fee2e2;
-  color: #7f1d1d;
-}
-
-.reason-time {
-  font-size: 12px;
-  font-weight: normal;
-  margin-top: 4px;
-  opacity: 0.7;
-}
-
-/* 🎉 Confetti splash (up then fall) */
+/* ---------- CONFETTI ---------- */
 .confetti {
   position: fixed;
-  bottom: -30px;
-  font-size: 20px;
-  pointer-events: none;
-  animation: confettiSplash 4s ease-out forwards;
+  bottom: -40px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  opacity: 0.9;
+  animation: splash 4s ease-out forwards;
+  z-index: 1;
 }
 
-@keyframes confettiSplash {
-  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
-  40%  { transform: translateY(-60vh) rotate(360deg); }
-  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+@keyframes splash {
+  0%   { transform: translateY(0) scale(1); opacity: 1; }
+  30%  { transform: translateY(-300px) scale(1.2); }
+  100% { transform: translateY(500px) scale(0.6); opacity: 0; }
 }
 
-/* 💩 Poo peek */
-.poo {
+/* ---------- POOP EMOJI ---------- */
+#poop {
   position: fixed;
-  font-size: 120px;
-  z-index: 999;
-  pointer-events: none;
-  animation-duration: 3.5s;
-  animation-fill-mode: forwards;
-}
-
-/* Individual peek animations */
-@keyframes peekLeft {
-  0% { transform: translateX(-140px); }
-  30% { transform: translateX(0); }
-  70% { transform: translateX(0); }
-  100% { transform: translateX(-140px); }
-}
-
-@keyframes peekRight {
-  0% { transform: translateX(140px); }
-  30% { transform: translateX(0); }
-  70% { transform: translateX(0); }
-  100% { transform: translateX(140px); }
-}
-
-@keyframes peekTop {
-  0% { transform: translateY(-140px) rotate(180deg); }
-  30% { transform: translateY(0) rotate(180deg); }
-  70% { transform: translateY(0) rotate(180deg); }
-  100% { transform: translateY(-140px) rotate(180deg); }
-}
-
-@keyframes peekBottom {
-  0% { transform: translateY(140px); }
-  30% { transform: translateY(0); }
-  70% { transform: translateY(0); }
-  100% { transform: translateY(140px); }
+  font-size: 140px;
+  transition: transform 1.2s ease, opacity 1.2s ease;
+  z-index: 3;
+  opacity: 0;
 }
 </style>
 </head>
 
 <body>
 
-<div id="home">
-  <h1>학년 선택</h1>
-  <ul id="grade-links"></ul>
+<h1>💩 Poop Quest Scores</h1>
+
+<div id="scoreBoard">
+  <div id="scores" class="empty">Loading scores…</div>
 </div>
 
-<div id="view"></div>
+<div id="poop">💩</div>
 
 <script>
-firebase.initializeApp({
-  apiKey: "AIzaSyAfFbHdfoXoOLw7rD-nd8HPSaZR6OBBYf8",
-  authDomain: "tally-v-2.firebaseapp.com",
-  databaseURL: "https://tally-v-2-default-rtdb.firebaseio.com",
-  projectId: "tally-v-2",
-  storageBucket: "tally-v-2.appspot.com",
-  messagingSenderId: "193194015446",
-  appId: "1:193194015446:web:41f010ef36a74df776a777"
-});
-
+/* ---------- FIREBASE ---------- */
+const firebaseConfig = {
+  databaseURL: "YOUR_DATABASE_URL_HERE"
+};
+firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-let grades = {};
 
-const homeEl = document.getElementById("home");
-const viewEl = document.getElementById("view");
-const gradeLinksEl = document.getElementById("grade-links");
+/* ---------- LOAD SCORES ---------- */
+const scoresDiv = document.getElementById("scores");
 
-db.ref("grades").on("value", snap => {
-  grades = snap.val() || {};
-  renderHome();
+db.ref("scores").on("value", snap => {
+  scoresDiv.innerHTML = "";
+
+  if (!snap.exists()) {
+    scoresDiv.innerHTML = "<div class='empty'>No scores yet</div>";
+    return;
+  }
+
+  const data = snap.val();
+  Object.keys(data).forEach(name => {
+    const row = document.createElement("div");
+    row.className = "scoreRow";
+    row.innerHTML = `<span>${name}</span><span>${data[name]}</span>`;
+    scoresDiv.appendChild(row);
+  });
 });
 
-function renderHome() {
-  viewEl.innerHTML = "";
-  homeEl.style.display = "block";
-  gradeLinksEl.innerHTML = "";
-
-  for (const grade in grades) {
-    const li = document.createElement("li");
-    const btn = document.createElement("button");
-    btn.className = "link-btn";
-    btn.textContent = grade;
-    btn.onclick = () => openGrade(grade);
-    li.appendChild(btn);
-    gradeLinksEl.appendChild(li);
-  }
-}
-
-function openGrade(grade) {
-  homeEl.style.display = "none";
-  viewEl.innerHTML = `
-    <button class="back-btn" onclick="renderHome()">← 돌아가기</button>
-    <h2>${grade} 점수</h2>
-  `;
-}
-
-/* 🎉 Confetti every ~10 seconds */
-setInterval(() => {
-  const count = 18 + Math.floor(Math.random() * 10);
-  for (let i = 0; i < count; i++) {
+/* ---------- CONFETTI SPLASH ---------- */
+function splashConfetti() {
+  for (let i = 0; i < 20; i++) {
     const c = document.createElement("div");
     c.className = "confetti";
-    c.textContent = ["🎉","✨","⭐","💎"][Math.floor(Math.random()*4)];
-    c.style.left = Math.random() * 100 + "vw";
-    c.style.animationDelay = (Math.random() * 0.5) + "s";
+    c.style.left = Math.random() * window.innerWidth + "px";
+    c.style.background = `hsl(${Math.random()*360}, 80%, 65%)`;
     document.body.appendChild(c);
-    setTimeout(() => c.remove(), 4500);
+    setTimeout(() => c.remove(), 4000);
   }
-}, 10000);
+}
+setInterval(splashConfetti, 10000);
 
-/* 💩 Random peeking poo */
-function spawnPoo() {
-  const p = document.createElement("div");
-  p.className = "poo";
-  p.textContent = "💩";
+/* ---------- POOP POP ANIMATION ---------- */
+const poop = document.getElementById("poop");
+const sides = ["top", "bottom", "left", "right"];
 
-  const side = ["left","right","top","bottom"][Math.floor(Math.random()*4)];
+function poopPop() {
+  const side = sides[Math.floor(Math.random()*sides.length)];
+  const rand = Math.random() * 60 + 10;
+
+  poop.style.opacity = "1";
+  poop.style.transform = "none";
+
+  if (side === "top") {
+    poop.style.top = "-140px";
+    poop.style.left = rand + "%";
+    poop.style.transform = "rotate(180deg)";
+    setTimeout(()=> poop.style.top = "-40px", 100);
+  }
+
+  if (side === "bottom") {
+    poop.style.bottom = "-140px";
+    poop.style.left = rand + "%";
+    poop.style.transform = "rotate(0deg)";
+    setTimeout(()=> poop.style.bottom = "-40px", 100);
+  }
 
   if (side === "left") {
-    p.style.left = "0";
-    p.style.top = Math.random()*70 + 10 + "vh";
-    p.style.animationName = "peekLeft";
-  }
-  if (side === "right") {
-    p.style.right = "0";
-    p.style.top = Math.random()*70 + 10 + "vh";
-    p.style.animationName = "peekRight";
-  }
-  if (side === "top") {
-    p.style.top = "0";
-    p.style.left = Math.random()*70 + 10 + "vw";
-    p.style.animationName = "peekTop";
-  }
-  if (side === "bottom") {
-    p.style.bottom = "0";
-    p.style.left = Math.random()*70 + 10 + "vw";
-    p.style.animationName = "peekBottom";
+    poop.style.left = "-140px";
+    poop.style.top = rand + "%";
+    poop.style.transform = "rotate(90deg)";
+    setTimeout(()=> poop.style.left = "-40px", 100);
   }
 
-  document.body.appendChild(p);
-  setTimeout(() => p.remove(), 3600);
+  if (side === "right") {
+    poop.style.right = "-140px";
+    poop.style.top = rand + "%";
+    poop.style.transform = "rotate(-90deg)";
+    setTimeout(()=> poop.style.right = "-40px", 100);
+  }
+
+  setTimeout(() => {
+    poop.style.opacity = "0";
+    poop.style.top = "";
+    poop.style.bottom = "";
+    poop.style.left = "";
+    poop.style.right = "";
+  }, 3000);
 }
 
-setInterval(spawnPoo, 4000 + Math.random()*5000);
+setInterval(poopPop, 7000);
 </script>
 
 </body>
